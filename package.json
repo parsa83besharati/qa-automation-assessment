@@ -22,7 +22,10 @@
     "format:check": "prettier --check .",
     "prepare": "husky",
     "perf:smoke": "k6 run performance/k6/search-products-smoke.js",
-    "perf:load": "k6 run performance/k6/search-products-load.js"
+    "perf:load": "k6 run performance/k6/search-products-load.js",
+    "perf:stress": "k6 run performance/k6/search-products-stress.js",
+    "perf:spike": "k6 run performance/k6/search-products-spike.js",
+    "perf:soak": "k6 run performance/k6/search-products-soak.js"
   },
   "lint-staged": {
     "*.ts": [
