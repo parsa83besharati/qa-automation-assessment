@@ -6,6 +6,8 @@ import { setupTestLogger, teardownTestLogger } from '../utils/logger-helpers';
 import { viewports, type ViewportPreset } from './viewport';
 import { HomePage } from '../pages/HomePage';
 import { SearchResultsPage } from '../pages/SearchResultsPage';
+import { AutomationExerciseClient } from '../services/api-client';
+import { dataRegistry } from '../data/registry/data-registry';
 
 // ---------------------------------------------------------------------------
 // Best-practice fixtures: every test gets logging + page objects injected.
@@ -17,6 +19,7 @@ type AppFixtures = {
   clearSession: () => Promise<void>;
   homePage: HomePage;
   resultsPage: SearchResultsPage;
+  apiClient: AutomationExerciseClient;
 };
 
 export const test = base.extend<AppFixtures>({
@@ -51,6 +54,14 @@ export const test = base.extend<AppFixtures>({
   resultsPage: async ({ page }, use) => {
     await use(new SearchResultsPage(page));
   },
+
+  apiClient: async ({ request }, use) => {
+    await use(new AutomationExerciseClient(request));
+  },
+});
+
+test.afterEach(() => {
+  dataRegistry.clear();
 });
 
 export { expect } from '@playwright/test';
