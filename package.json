@@ -1,0 +1,73 @@
+{
+  "name": "qa-automation-assessment",
+  "version": "1.0.0",
+  "description": "Playwright TypeScript automation framework (POM + AI self-healing) for Booking.com UI, AutomationExercise API and k6 performance — Mohaymen technical assessment.",
+  "scripts": {
+    "test": "npx playwright test",
+    "test:smoke": "npx playwright test tests/ui/smoke.spec.ts --project=chromium",
+    "test:regression": "npx playwright test tests/ui/regression.spec.ts",
+    "test:negative": "npx playwright test tests/ui/negative.spec.ts",
+    "test:edge": "npx playwright test tests/ui/edge.spec.ts",
+    "test:security": "npx playwright test tests/ui/security.spec.ts",
+    "test:api": "npx playwright test tests/api",
+    "test:chromium": "npx playwright test --project=chromium",
+    "test:firefox": "npx playwright test --project=firefox",
+    "test:webkit": "npx playwright test --project=webkit",
+    "test:headed": "cross-env HEADLESS=false npx playwright test --project=chromium --headed",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "lint:check": "eslint . --max-warnings 0",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "prepare": "husky",
+    "perf:smoke": "k6 run performance/k6/search-products-smoke.js",
+    "perf:load": "k6 run performance/k6/search-products-load.js"
+  },
+  "lint-staged": {
+    "*.ts": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{js,json,md}": [
+      "prettier --write"
+    ]
+  },
+  "keywords": [
+    "playwright",
+    "typescript",
+    "pom",
+    "qa",
+    "booking",
+    "automationexercise",
+    "k6",
+    "self-healing"
+  ],
+  "author": "",
+  "license": "MIT",
+  "type": "commonjs",
+  "devDependencies": {
+    "@playwright/test": "^1.55.0",
+    "@types/node": "^22.7.0",
+    "@typescript-eslint/eslint-plugin": "^8.12.0",
+    "@typescript-eslint/parser": "^8.12.0",
+    "cross-env": "^7.0.3",
+    "eslint": "^9.13.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-playwright": "^2.1.0",
+    "husky": "^9.1.6",
+    "lint-staged": "^15.2.10",
+    "prettier": "^3.3.3",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.6.3"
+  },
+  "dependencies": {
+    "@faker-js/faker": "^9.0.0",
+    "chalk": "^4.1.2",
+    "dotenv": "^16.4.5",
+    "openai": "^4.60.0",
+    "playwright-enhanced-reporter": "^3.0.1",
+    "uuid": "^11.0.0",
+    "winston": "^3.15.0"
+  }
+}

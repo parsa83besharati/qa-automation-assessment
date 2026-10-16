@@ -1,0 +1,30 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "commonjs",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "strict": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "declaration": false,
+    "sourceMap": false,
+    "outDir": "./dist",
+    "rootDir": "./",
+    "types": ["node"]
+  },
+  "include": [
+    "config/**/*.ts",
+    "pages/**/*.ts",
+    "fixtures/**/*.ts",
+    "data/**/*.ts",
+    "services/**/*.ts",
+    "utils/**/*.ts",
+    "tests/**/*.ts",
+    "global-setup.ts",
+    "playwright.config.ts"
+  ],
+  "exclude": ["node_modules", "dist", "test-results", "playwright-report", "logs"]
+}

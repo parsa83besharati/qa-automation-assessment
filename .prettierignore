@@ -1,0 +1,14 @@
+node_modules/
+dist/
+test-results/
+test-results-*/
+playwright-report/
+enhanced-report/
+reports/
+.env
+*.log
+.DS_Store
+logs/
+.vscode/
+playwright/.cache/
+screenshots/
