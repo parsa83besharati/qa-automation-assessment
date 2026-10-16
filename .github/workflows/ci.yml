@@ -1,0 +1,54 @@
+name: ci
+on:
+  push:
+  pull_request:
+  schedule: [{ cron: '0 6 * * *' }]
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, cache: npm }
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run typecheck
+      - run: npm run lint:check
+      - run: npx prettier --check .
+
+  api:
+    needs: quality
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, cache: npm }
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:api -- --project=chromium
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: api-report, path: playwright-report/ }
+
+  smoke:
+    needs: api
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, cache: npm }
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:smoke
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: smoke-report, path: playwright-report/ }
+
+  perf-smoke:
+    needs: api
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: grafana/setup-k6-action@v1
+      - run: k6 run performance/k6/search-products-smoke.js

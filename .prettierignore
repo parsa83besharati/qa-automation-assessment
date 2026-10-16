@@ -12,3 +12,4 @@ logs/
 .vscode/
 playwright/.cache/
 screenshots/
+LICENSE

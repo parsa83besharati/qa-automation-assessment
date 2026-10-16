@@ -1,0 +1,21 @@
+parameters:
+  - name: project
+    type: string
+    default: 'chromium'
+
+steps:
+  - task: NodeTool@0
+    inputs:
+      versionSpec: '20.x'
+    displayName: 'Use Node 20'
+  - script: |
+      npm ci
+      npx playwright install --with-deps ${{ parameters.project }}
+    displayName: 'Install deps + browsers'
+  - script: |
+      npm run typecheck
+      npm run lint:check
+      npx prettier --check .
+    displayName: 'Quality gate'
+  - script: npm run test:api -- --project=${{ parameters.project }}
+    displayName: 'API tests'
