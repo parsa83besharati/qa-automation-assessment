@@ -22,6 +22,7 @@ npx playwright show-report
 | Command                                            | What                                                                                |
 | -------------------------------------------------- | ----------------------------------------------------------------------------------- |
 | `test:smoke/regression/negative/edge/security/api` | suites                                                                              |
+| `test:ci` / `test:fast` / `test:negative-api`      | tag-filtered subsets (smoke+api / fast local loop / API negatives)                  |
 | `test:chromium/firefox/webkit`, `test:headed`      | browsers                                                                            |
 | `typecheck`, `lint:check`, `format:check`          | quality gates                                                                       |
 | `perf:smoke/load/stress/spike/soak`                | k6 scenarios                                                                        |

@@ -61,45 +61,57 @@ test.describe('API — AutomationExercise products', { tag: ['@api'] }, () => {
     }
   });
 
-  test('TC-API-NEG-001 — search without parameter is rejected (400)', async ({ request }) => {
-    await allure.feature('API negative');
-    await allure.story('Missing search parameter is rejected');
-    await allure.severity('normal');
-    await allure.description(
-      'POST /api/searchProduct with no body must respond HTTP 200 with responseCode 400 and a validation message.',
-    );
+  test(
+    'TC-API-NEG-001 — search without parameter is rejected (400)',
+    { tag: ['@negative'] },
+    async ({ request }) => {
+      await allure.feature('API negative');
+      await allure.story('Missing search parameter is rejected');
+      await allure.severity('normal');
+      await allure.description(
+        'POST /api/searchProduct with no body must respond HTTP 200 with responseCode 400 and a validation message.',
+      );
 
-    const response = await request.post('/api/searchProduct');
-    expect(response.status()).toBe(200);
-    const body = (await response.json()) as { responseCode?: number; message?: string };
-    expect(body.responseCode).toBe(400);
-  });
+      const response = await request.post('/api/searchProduct');
+      expect(response.status()).toBe(200);
+      const body = (await response.json()) as { responseCode?: number; message?: string };
+      expect(body.responseCode).toBe(400);
+    },
+  );
 
-  test('TC-API-NEG-002 — GET on search endpoint is not allowed (405)', async ({ request }) => {
-    await allure.feature('API negative');
-    await allure.story('GET method on search endpoint is not allowed');
-    await allure.severity('normal');
-    await allure.description(
-      'GET /api/searchProduct must be rejected by the server (HTTP 405 or a 200 envelope carrying responseCode 405).',
-    );
+  test(
+    'TC-API-NEG-002 — GET on search endpoint is not allowed (405)',
+    { tag: ['@negative'] },
+    async ({ request }) => {
+      await allure.feature('API negative');
+      await allure.story('GET method on search endpoint is not allowed');
+      await allure.severity('normal');
+      await allure.description(
+        'GET /api/searchProduct must be rejected by the server (HTTP 405 or a 200 envelope carrying responseCode 405).',
+      );
 
-    const response = await request.get('/api/searchProduct');
-    const body = (await response.json()) as { responseCode?: number };
-    expect([200, 405]).toContain(response.status());
-    expect([200, 405]).toContain(body.responseCode);
-  });
+      const response = await request.get('/api/searchProduct');
+      const body = (await response.json()) as { responseCode?: number };
+      expect([200, 405]).toContain(response.status());
+      expect([200, 405]).toContain(body.responseCode);
+    },
+  );
 
-  test('TC-API-SEC-001 — XSS/SQLi probes do not break search', async ({ apiClient }) => {
-    await allure.feature('API security');
-    await allure.story('Malicious payloads keep the API stable');
-    await allure.severity('normal');
-    await allure.description(
-      'Sends XSS and SQL-injection style queries to /api/searchProduct and asserts the endpoint still answers with a well-formed array.',
-    );
+  test(
+    'TC-API-SEC-001 — XSS/SQLi probes do not break search',
+    { tag: ['@security'] },
+    async ({ apiClient }) => {
+      await allure.feature('API security');
+      await allure.story('Malicious payloads keep the API stable');
+      await allure.severity('normal');
+      await allure.description(
+        'Sends XSS and SQL-injection style queries to /api/searchProduct and asserts the endpoint still answers with a well-formed array.',
+      );
 
-    for (const { query } of ApiTemplates.invalidSearchQueries().slice(1)) {
-      const products = await apiClient.searchProducts(query);
-      expect(Array.isArray(products)).toBe(true);
-    }
-  });
+      for (const { query } of ApiTemplates.invalidSearchQueries().slice(1)) {
+        const products = await apiClient.searchProducts(query);
+        expect(Array.isArray(products)).toBe(true);
+      }
+    },
+  );
 });

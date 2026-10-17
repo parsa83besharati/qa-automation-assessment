@@ -94,6 +94,13 @@ export class EnvConfig {
     };
   }
 
+  // ------------------------- Task 2 API SLO -------------------------
+
+  /** Latency budget for a single API call (ms) — mirrors k6 `p(95)<1500`. */
+  public get apiLatencyBudgetMs(): number {
+    return EnvConfig.parseInt(process.env.API_LATENCY_BUDGET_MS, 1500);
+  }
+
   // ------------------------- Self-healing -------------------------
 
   public get selfHealingEnabled(): boolean {
@@ -205,6 +212,7 @@ export function logEnvOnce(label = 'env'): void {
   console.info(
     `[${label}] BOOKING=${env.bookingBaseUrl} API=${env.apiBaseUrl} ` +
       `HEADLESS=${env.headless} HEALING=${env.selfHealingEnabled ? 'ON' : 'OFF'}(${env.healingMode}) ` +
-      `SEARCH={currency:${search.currency} destination:${search.destination} adults:${search.adults} pets:${search.travellingWithPets} hotelIndex:${search.targetHotelIndex}}`,
+      `SEARCH={currency:${search.currency} destination:${search.destination} adults:${search.adults} pets:${search.travellingWithPets} hotelIndex:${search.targetHotelIndex}} ` +
+      `API_SLO=${env.apiLatencyBudgetMs}ms`,
   );
 }

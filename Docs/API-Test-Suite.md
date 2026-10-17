@@ -23,3 +23,13 @@ Reference: `https://www.automationexercise.com/api_list`. Run: `npm run test:api
 ## Negatives / security
 
 - Missing param → 400 (`TC-API-NEG-001`); wrong method GET → 405-documented (`TC-API-NEG-002`); XSS/SQLi → safe empty arrays (`TC-API-SEC-001`).
+
+## Contract & latency — `tests/api/contract.spec.ts`
+
+- `TC-API-CONTRACT-001` — `GET /api/productsList` must be exactly `{ responseCode, products[] }`, and each product exactly `{ id: number, name, price, brand, category: { usertype: { usertype }, category } }`. Unknown keys fail on purpose so schema drift is caught.
+- `TC-API-CONTRACT-002` — the same contract for `POST /api/searchProduct` (`search_product` form field).
+- `TC-API-SLO-001` — one call per endpoint must finish within `API_LATENCY_BUDGET_MS` (default **1500 ms**, mirroring the k6 threshold `p(95)<1500`); durations are attached to the report as `api-latency-ms`.
+- Validator: `services/api-schema.ts` → `validateContract(value, schema)` (dependency-free, returns `$.path: expected …` violations).
+- Live payload note: `category.usertype` is a **nested object** `{"usertype":"Women"}` — the entity (`data/entities/api-product.entity.ts`) matches reality, not a plain string.
+
+Run subsets: `npm run test:api` (all 8), `npm run test:ci` (smoke+API), `npm run test:negative-api` (negatives/security only).

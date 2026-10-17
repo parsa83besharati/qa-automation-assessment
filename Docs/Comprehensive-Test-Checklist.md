@@ -22,13 +22,16 @@
 - [ ] TC-SEC-003 SQLi (`security.spec.ts`)
 - [ ] TC-SEC-004 cookie clear (`security.spec.ts`)
 
-## API — AutomationExercise (`tests/api/products.spec.ts`)
+## API — AutomationExercise (`tests/api/`)
 
 - [x] TC-API-001 productsList → Polo names (live pass)
 - [x] TC-API-002 searchProduct → Tshirts (live pass)
 - [x] TC-API-NEG-001 missing param → 400 (live pass)
 - [x] TC-API-NEG-002 GET method → 405-documented (live pass)
 - [x] TC-API-SEC-001 XSS/SQLi safe (live pass)
+- [x] TC-API-CONTRACT-001 productsList shape/types (`contract.spec.ts`) — live pass
+- [x] TC-API-CONTRACT-002 searchProduct shape/types (`contract.spec.ts`) — live pass
+- [x] TC-API-SLO-001 latency within `API_LATENCY_BUDGET_MS` (`contract.spec.ts`) — live pass
 
 ## Perf — k6 (`performance/k6/`)
 
