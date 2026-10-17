@@ -27,8 +27,16 @@ stages:
     jobs:
       - job: smoke
         steps:
+          - template: steps/install-deps.yml
+            parameters:
+              browsers: chromium
           - script: npm run test:smoke
             displayName: 'Smoke UI'
+          - task: PublishTestResults@2
+            condition: always()
+            inputs:
+              testResultsFiles: 'test-results/**/*.xml'
+              testRunTitle: 'Smoke UI'
 
   - stage: Regression
     dependsOn: Smoke
@@ -43,9 +51,13 @@ stages:
             webkit:
               project: webkit
         steps:
+          - template: steps/install-deps.yml
+            parameters:
+              browsers: $(project)
           - script: npx playwright test tests/ui/regression.spec.ts --project=$(project)
             displayName: 'Regression $(project)'
           - task: PublishTestResults@2
             condition: always()
             inputs:
               testResultsFiles: 'test-results/**/*.xml'
+              testRunTitle: 'Regression $(project)'

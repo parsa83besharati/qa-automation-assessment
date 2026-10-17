@@ -62,5 +62,11 @@ export default defineConfig({
         open: 'never',
       },
     ],
+    [
+      'junit',
+      {
+        outputFile: 'test-results/junit.xml',
+      },
+    ],
   ],
 });

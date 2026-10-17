@@ -4,14 +4,9 @@ parameters:
     default: 'chromium'
 
 steps:
-  - task: NodeTool@0
-    inputs:
-      versionSpec: '20.x'
-    displayName: 'Use Node 20'
-  - script: |
-      npm ci
-      npx playwright install --with-deps ${{ parameters.project }}
-    displayName: 'Install deps + browsers'
+  - template: install-deps.yml
+    parameters:
+      browsers: ${{ parameters.project }}
   - script: |
       npm run typecheck
       npm run lint:check
@@ -19,3 +14,8 @@ steps:
     displayName: 'Quality gate'
   - script: npm run test:api -- --project=${{ parameters.project }}
     displayName: 'API tests'
+  - task: PublishTestResults@2
+    condition: always()
+    inputs:
+      testResultsFiles: 'test-results/**/*.xml'
+      testRunTitle: 'API tests (${{ parameters.project }})'

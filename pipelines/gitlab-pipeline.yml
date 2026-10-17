@@ -2,28 +2,47 @@ stages: [lint, smoke, regression]
 
 variables:
   PLAYWRIGHT_BROWSERS_PATH: '$CI_PROJECT_DIR/ms-playwright'
+  npm_config_cache: '$CI_PROJECT_DIR/.npm'
 
 lint:
   stage: lint
   image: mcr.microsoft.com/playwright:v1.55.0-noble
   script: [npm ci, npm run typecheck, npm run lint:check, npx prettier --check .]
   cache:
-    paths: [node_modules/]
+    key: npm
+    paths: [.npm/]
 
 smoke:
   stage: smoke
   image: mcr.microsoft.com/playwright:v1.55.0-noble
-  script: [npx playwright install --with-deps chromium, npm run test:api, npm run test:smoke]
+  script:
+    - npm ci
+    - npx playwright install --with-deps chromium
+    - npm run test:api
+    - npm run test:smoke
+  cache:
+    key: npm
+    paths: [.npm/]
   artifacts:
     when: always
     paths: [playwright-report/, test-results/, logs/]
+    reports:
+      junit: test-results/junit.xml
 
 regression:
   stage: regression
   image: mcr.microsoft.com/playwright:v1.55.0-noble
   parallel:
     matrix: [{ PROJECT: [chromium, firefox, webkit] }]
-  script: [npx playwright test tests/ui/regression.spec.ts --project=$PROJECT]
+  script:
+    - npm ci
+    - npx playwright install --with-deps $PROJECT
+    - npx playwright test tests/ui/regression.spec.ts --project=$PROJECT
+  cache:
+    key: npm
+    paths: [.npm/]
   artifacts:
     when: always
     paths: [playwright-report/, test-results/, logs/]
+    reports:
+      junit: test-results/junit.xml

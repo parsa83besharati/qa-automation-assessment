@@ -1,0 +1,14 @@
+parameters:
+  - name: browsers
+    type: string
+    default: 'chromium'
+
+steps:
+  - task: NodeTool@0
+    inputs:
+      versionSpec: '20.x'
+    displayName: 'Use Node 20'
+  - script: npm ci
+    displayName: 'Install npm dependencies'
+  - script: npx playwright install --with-deps ${{ parameters.browsers }}
+    displayName: 'Install Playwright browsers'
