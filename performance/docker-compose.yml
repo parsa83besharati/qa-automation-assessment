@@ -1,0 +1,47 @@
+# ---------------------------------------------------------------------------
+# Task 3 — k6 → InfluxDB → Grafana performance stack.
+#
+#   npm run perf:stack        # up -d
+#   npm run perf:smoke:grafana # k6 run --out influxdb=... (pushes metrics)
+#   npm run perf:stack:down   # stop + remove containers
+#
+# Then open Grafana → http://localhost:3000 (admin/admin) → "k6" folder →
+# "k6 Performance Tests". Datasource + dashboard are provisioned (no clicks).
+#
+# Both ports bind to 127.0.0.1 only, and InfluxDB auth is intentionally off
+# for a local test rig — do not publish this stack beyond localhost.
+# ---------------------------------------------------------------------------
+name: qa-perf-stack
+
+services:
+  influxdb:
+    image: influxdb:1.8
+    restart: unless-stopped
+    ports:
+      - '127.0.0.1:8086:8086'
+    environment:
+      INFLUXDB_DB: k6
+    volumes:
+      - influxdb-data:/var/lib/influxdb
+
+  grafana:
+    image: grafana/grafana:latest
+    restart: unless-stopped
+    depends_on:
+      - influxdb
+    ports:
+      - '127.0.0.1:3000:3000'
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: 'false'
+      GF_ANALYTICS_REPORTING_ENABLED: 'false'
+      GF_ANALYTICS_CHECK_FOR_UPDATES: 'false'
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/etc/grafana/dashboards:ro
+
+volumes:
+  influxdb-data:
+  grafana-data:

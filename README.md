@@ -12,6 +12,8 @@ cp .env.example .env        # set SELF_HEALING_ENABLED=true + LLM keys to enable
 npm run test:api            # Task 2 — live green (Polo + Tshirts)
 npm run test:smoke          # Task 1 happy path (Booking — may need HEADLESS=false headed locally)
 npm run perf:smoke          # Task 3 — k6 smoke (live trial: 100% checks, p95≈869ms)
+npm run perf:stack          # observability: InfluxDB + Grafana on localhost:3000 (admin/admin)
+npm run perf:smoke:grafana  # same k6 smoke with --out influxdb= → live Grafana dashboard
 npm run allure:report       # Allure 2 report from last run (history chain + 50-report cap)
 npm run allure:open         # serve the newest report locally
 npx playwright show-report
@@ -19,14 +21,16 @@ npx playwright show-report
 
 ## Scripts
 
-| Command                                            | What                                                                                |
-| -------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| `test:smoke/regression/negative/edge/security/api` | suites                                                                              |
-| `test:ci` / `test:fast` / `test:negative-api`      | tag-filtered subsets (smoke+api / fast local loop / API negatives)                  |
-| `test:chromium/firefox/webkit`, `test:headed`      | browsers                                                                            |
-| `typecheck`, `lint:check`, `format:check`          | quality gates                                                                       |
-| `perf:smoke/load/stress/spike/soak`                | k6 scenarios                                                                        |
-| `allure:report`, `allure:open`                     | Allure 2 (annotations, history trend, screenshot/video on fail, newest-50 rotation) |
+| Command                                              | What                                                                                 |
+| ---------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| `test:smoke/regression/negative/edge/security/api`   | suites                                                                               |
+| `test:ci` / `test:fast` / `test:negative-api`        | tag-filtered subsets (smoke+api / fast local loop / API negatives)                   |
+| `test:chromium/firefox/webkit`, `test:headed`        | browsers                                                                             |
+| `typecheck`, `lint:check`, `format:check`            | quality gates                                                                        |
+| `perf:smoke/load/stress/spike/soak`                  | k6 scenarios                                                                         |
+| `perf:stack` / `perf:stack:down` / `perf:stack:logs` | k6 → InfluxDB → Grafana stack (`localhost:3000`, admin/admin, provisioned dashboard) |
+| `perf:smoke:grafana`, `perf:load:grafana`            | k6 scenario + `--out influxdb=` so metrics land in Grafana                           |
+| `allure:report`, `allure:open`                       | Allure 2 (annotations, history trend, screenshot/video on fail, newest-50 rotation)  |
 
 ### Projects & browser matrix
 

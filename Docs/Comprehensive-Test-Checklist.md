@@ -40,3 +40,9 @@
 - [ ] Stress →100 VUs
 - [ ] Spike 5→80
 - [ ] Soak 10 VUs
+
+### Observability — Grafana (`performance/`)
+
+- [x] `docker-compose.yml` + provisioned datasource/dashboard (no manual import) — live
+- [x] `npm run perf:stack` up → Grafana `/api/health` ok, dashboard `k6-perf` loads (14 panels)
+- [x] `npm run perf:smoke:grafana` end-to-end: k6 `--out influxdb=` → InfluxDB → Grafana proxy `http_reqs=23`

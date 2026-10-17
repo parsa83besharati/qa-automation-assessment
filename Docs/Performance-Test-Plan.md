@@ -21,9 +21,37 @@ All five are implemented (Task asked for 2 — the extra three are a bonus).
 - `p50≈486ms`, `p95≈869ms` → budgets above set with headroom for the public demo site.
 - Only note: raw p95 (869ms) exceeds an aggressive 800ms budget — hence 1500ms in the committed script.
 
+## Grafana observability stack (Docker, `performance/docker-compose.yml`)
+
+InfluxDB 1.8 + Grafana 13, fully provisioned — no manual datasource/dashboard imports.
+
+| Command                      | Effect                                                     |
+| ---------------------------- | ---------------------------------------------------------- |
+| `npm run perf:stack`         | `docker compose up -d` → InfluxDB `:8086`, Grafana `:3000` |
+| `npm run perf:smoke:grafana` | k6 smoke with `--out influxdb=http://127.0.0.1:8086/k6`    |
+| `npm run perf:load:grafana`  | same for the load scenario (3.5m of live charts)           |
+| `npm run perf:stack:logs`    | follow Grafana logs                                        |
+| `npm run perf:stack:down`    | stop + remove containers (named volumes kept)              |
+
+Any scenario streams metrics by appending `--out influxdb=http://127.0.0.1:8086/k6`.
+
+- **Dashboard**: http://localhost:3000 → `admin`/`admin` → folder `k6` → _k6 Performance Tests_
+  (`/d/k6-perf/k6-performance-tests`), 14 panels, auto-refresh 10s.
+- **Provisioned**: datasource `InfluxDB-k6` (`performance/grafana/provisioning/`) + dashboard
+  JSON (`performance/grafana/dashboards/k6-perf.json`).
+- **Panels**: failure-rate / checks-pass / p95 / requests / iterations stat tiles (SLO
+  1500 ms drawn as a threshold line), latency percentiles p50–p99, p95 per `endpoint` tag,
+  stacked HTTP timing breakdown (TTFB/DNS/TLS/receiving), the `search_duration` business SLO,
+  throughput, failure-rate-over-time, VUs and requests-by-status.
+- **Safety**: both ports bind to `127.0.0.1` only and InfluxDB auth is off — local test rig,
+  do not publish the stack beyond localhost.
+- **Verified 2026-10-17**: k6 v2.0.0 `--out influxdb=` wrote 23 samples, Grafana's datasource
+  proxy returned `http_reqs = 23`, dashboard loaded via `/api/dashboards/uid/k6-perf`.
+
 ## How to run / present (20–30 min slot)
 
 1. `k6 run performance/k6/search-products-smoke.js` (30s, green board).
 2. `k6 run performance/k6/search-products-load.js` (3.5m, show p95 chart + thresholds).
 3. Point at stress/spike/soak files for design questions; quote thresholds table above.
 4. Risks: public-site noise (run 3×, report median), no auth in scope, keep VUs low to avoid hammering the demo host.
+5. Live observability: `npm run perf:stack` + `npm run perf:smoke:grafana`, then open the provisioned Grafana dashboard.
