@@ -23,6 +23,7 @@
     "services/**/*.ts",
     "utils/**/*.ts",
     "tests/**/*.ts",
+    "scripts/**/*.ts",
     "global-setup.ts",
     "playwright.config.ts"
   ],

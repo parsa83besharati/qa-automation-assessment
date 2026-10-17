@@ -12,17 +12,20 @@ cp .env.example .env        # set SELF_HEALING_ENABLED=true + LLM keys to enable
 npm run test:api            # Task 2 — live green (Polo + Tshirts)
 npm run test:smoke          # Task 1 happy path (Booking — may need HEADLESS=false headed locally)
 npm run perf:smoke          # Task 3 — k6 smoke (live trial: 100% checks, p95≈869ms)
+npm run allure:report       # Allure 2 report from last run (history chain + 50-report cap)
+npm run allure:open         # serve the newest report locally
 npx playwright show-report
 ```
 
 ## Scripts
 
-| Command                                            | What          |
-| -------------------------------------------------- | ------------- |
-| `test:smoke/regression/negative/edge/security/api` | suites        |
-| `test:chromium/firefox/webkit`, `test:headed`      | browsers      |
-| `typecheck`, `lint:check`, `format:check`          | quality gates |
-| `perf:smoke/load/stress/spike/soak`                | k6 scenarios  |
+| Command                                            | What                                                                                |
+| -------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| `test:smoke/regression/negative/edge/security/api` | suites                                                                              |
+| `test:chromium/firefox/webkit`, `test:headed`      | browsers                                                                            |
+| `typecheck`, `lint:check`, `format:check`          | quality gates                                                                       |
+| `perf:smoke/load/stress/spike/soak`                | k6 scenarios                                                                        |
+| `allure:report`, `allure:open`                     | Allure 2 (annotations, history trend, screenshot/video on fail, newest-50 rotation) |
 
 ## Architecture
 

@@ -1,9 +1,23 @@
 import { test, expect } from '../../fixtures/fixtures';
 import { SearchFactory } from '../../data/factories/search.factory';
 import { BookingTemplates } from '../../data/templates/booking.templates';
+import { allure } from 'allure-playwright';
 
 test.describe('Edge — Booking boundaries and resilience', { tag: ['@edge', '@ui'] }, () => {
+  test.beforeEach(async () => {
+    await allure.epic('Task 1 — Booking.com UI automation');
+    await allure.feature('Edge cases suite');
+    await allure.owner('QA Automation');
+    await allure.tags('@edge', '@ui');
+  });
+
   test('TC-EDGE-001 — Maximum adults stays submittable', async ({ homePage }) => {
+    await allure.story('Adult stepper honours its upper bound');
+    await allure.severity('minor');
+    await allure.description(
+      'Raises occupancy to the 30-adults boundary and asserts the search submit button remains visible.',
+    );
+
     const query = SearchFactory.maxAdults();
     await homePage.open();
     await homePage.setAdults(query.adults);
@@ -14,6 +28,12 @@ test.describe('Edge — Booking boundaries and resilience', { tag: ['@edge', '@u
     homePage,
     resultsPage,
   }) => {
+    await allure.story('Hotel index is not hard-coded');
+    await allure.severity('minor');
+    await allure.description(
+      'Opens "See availability" on the 2nd hotel to prove the results index is dynamic (Task 1 asks for the 3rd).',
+    );
+
     const query = BookingTemplates.taskHappyPath();
     await homePage.searchFlow({ ...query, targetHotelIndex: 2 });
     await resultsPage.waitForResults();
@@ -22,18 +42,36 @@ test.describe('Edge — Booking boundaries and resilience', { tag: ['@edge', '@u
   });
 
   test('TC-EDGE-003 — Transient popup does not break the flow', async ({ homePage }) => {
+    await allure.story('Sign-in/promo overlays are dismissed safely');
+    await allure.severity('minor');
+    await allure.description(
+      'Opens the homepage and runs popup dismissal; it must resolve as a boolean without breaking navigation.',
+    );
+
     await homePage.open();
     const dismissed = await homePage.dismissPopupIfPresent();
     expect(typeof dismissed).toBe('boolean');
   });
 
   test('TC-EDGE-004 — Tablet viewport keeps search usable', async ({ homePage, setViewport }) => {
+    await allure.story('Search widget survives a tablet viewport');
+    await allure.severity('minor');
+    await allure.description(
+      'Switches to 1024×768, loads the homepage and asserts search is usable.',
+    );
+
     await setViewport('tablet');
     await homePage.open();
     await expect(homePage.rawPage.locator('button[type="submit"]').first()).toBeVisible();
   });
 
   test('TC-EDGE-005 — Mobile viewport keeps search usable', async ({ homePage, setViewport }) => {
+    await allure.story('Search widget survives a mobile viewport');
+    await allure.severity('minor');
+    await allure.description(
+      'Switches to 390×844, loads the homepage and asserts search is usable.',
+    );
+
     await setViewport('mobile');
     await homePage.open();
     await expect(homePage.rawPage.locator('button[type="submit"]').first()).toBeVisible();

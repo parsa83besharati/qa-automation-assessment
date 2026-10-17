@@ -25,7 +25,9 @@
     "perf:load": "k6 run performance/k6/search-products-load.js",
     "perf:stress": "k6 run performance/k6/search-products-stress.js",
     "perf:spike": "k6 run performance/k6/search-products-spike.js",
-    "perf:soak": "k6 run performance/k6/search-products-soak.js"
+    "perf:soak": "k6 run performance/k6/search-products-soak.js",
+    "allure:report": "ts-node scripts/allure-report.ts generate",
+    "allure:open": "ts-node scripts/allure-report.ts open"
   },
   "lint-staged": {
     "*.ts": [
@@ -54,6 +56,8 @@
     "@types/node": "^22.7.0",
     "@typescript-eslint/eslint-plugin": "^8.12.0",
     "@typescript-eslint/parser": "^8.12.0",
+    "allure-commandline": "^2.46.1",
+    "allure-playwright": "^2.15.1",
     "cross-env": "^7.0.3",
     "eslint": "^9.13.0",
     "eslint-config-prettier": "^9.1.0",

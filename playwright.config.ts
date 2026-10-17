@@ -1,4 +1,6 @@
 import { defineConfig, devices } from '@playwright/test';
+import type { AllureReporterOptions } from 'allure-playwright';
+import os from 'node:os';
 import { env, logEnvOnce } from './config/env';
 
 logEnvOnce('playwright.config');
@@ -6,6 +8,27 @@ logEnvOnce('playwright.config');
 // Make resolved values visible to workers (config/env.ts also loads dotenv).
 process.env.BOOKING_BASE_URL = env.bookingBaseUrl;
 process.env.API_BASE_URL = env.apiBaseUrl;
+
+const allureOptions: AllureReporterOptions = {
+  outputFolder: 'allure-results',
+  detail: true,
+  suiteTitle: true,
+  environmentInfo: {
+    Project: 'qa-automation-assessment',
+    Framework: 'Playwright + Page Object Model',
+    Node: process.version,
+    Platform: `${os.platform()} ${os.release()} (${os.arch()})`,
+  },
+  categories: [
+    { name: 'Failed assertion', messageRegex: '.*expect\\(.*' },
+    { name: 'Test timeout', messageRegex: '.*Timeout.*' },
+    {
+      name: 'Network / infrastructure issue',
+      messageRegex:
+        '.*(ECONNREFUSED|ECONNRESET|net::ERR_|getaddrinfo|502 Bad Gateway|503 Service|429 Too Many).*',
+    },
+  ],
+};
 
 export default defineConfig({
   testDir: './tests',
@@ -46,6 +69,7 @@ export default defineConfig({
 
   reporter: [
     ['list'],
+    ['allure-playwright', allureOptions],
     [
       'playwright-enhanced-reporter',
       {

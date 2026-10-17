@@ -12,4 +12,7 @@ logs/
 .vscode/
 playwright/.cache/
 screenshots/
+allure-results/
+allure-reports/
+allure-report/
 task.pdf
