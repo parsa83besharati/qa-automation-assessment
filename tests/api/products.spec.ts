@@ -69,7 +69,7 @@ test.describe('API — AutomationExercise products', { tag: ['@api'] }, () => {
       'POST /api/searchProduct with no body must respond HTTP 200 with responseCode 400 and a validation message.',
     );
 
-    const response = await request.post('https://automationexercise.com/api/searchProduct');
+    const response = await request.post('/api/searchProduct');
     expect(response.status()).toBe(200);
     const body = (await response.json()) as { responseCode?: number; message?: string };
     expect(body.responseCode).toBe(400);
@@ -83,7 +83,7 @@ test.describe('API — AutomationExercise products', { tag: ['@api'] }, () => {
       'GET /api/searchProduct must be rejected by the server (HTTP 405 or a 200 envelope carrying responseCode 405).',
     );
 
-    const response = await request.get('https://automationexercise.com/api/searchProduct');
+    const response = await request.get('/api/searchProduct');
     const body = (await response.json()) as { responseCode?: number };
     expect([200, 405]).toContain(response.status());
     expect([200, 405]).toContain(body.responseCode);

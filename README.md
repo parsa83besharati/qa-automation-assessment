@@ -27,6 +27,10 @@ npx playwright show-report
 | `perf:smoke/load/stress/spike/soak`                | k6 scenarios                                                                        |
 | `allure:report`, `allure:open`                     | Allure 2 (annotations, history trend, screenshot/video on fail, newest-50 rotation) |
 
+### Projects & browser matrix
+
+API tests are pure HTTP (`request` fixture) and therefore **browser-agnostic** — they run once in the dedicated `api` project instead of being duplicated by every browser. The browser projects (`chromium`/`firefox`/`webkit`) ignore `api/**` and only execute the UI suite, so `npm run test:api` needs no browser binaries.
+
 ## Architecture
 
 ```

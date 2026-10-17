@@ -2,6 +2,8 @@
 
 Reference: `https://www.automationexercise.com/api_list`. Run: `npm run test:api`.
 
+> Runs once in the dedicated `api` Playwright project (browser-agnostic `request` fixture) — the chromium/firefox/webkit projects ignore `tests/api/**`, so these cases are not duplicated per browser.
+
 ## Stage 1 — TC-API-001 `GET /api/productsList` → Polo brands
 
 1. `apiClient.getAllProducts()` → HTTP 200, `responseCode` 200, 34 products (live count).

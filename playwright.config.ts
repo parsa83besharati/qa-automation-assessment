@@ -54,15 +54,28 @@ export default defineConfig({
 
   projects: [
     {
+      // API-only project. The `request` fixture is browser-agnostic, so these
+      // tests must run exactly once instead of being duplicated by every
+      // browser project (and they need no browser binaries at all).
+      name: 'api',
+      testMatch: 'api/**/*.spec.ts',
+      use: {
+        baseURL: env.apiBaseUrl,
+      },
+    },
+    {
       name: 'chromium',
+      testIgnore: 'api/**',
       use: { ...devices['Desktop Chrome'] },
     },
     {
       name: 'firefox',
+      testIgnore: 'api/**',
       use: { ...devices['Desktop Firefox'] },
     },
     {
       name: 'webkit',
+      testIgnore: 'api/**',
       use: { ...devices['Desktop Safari'] },
     },
   ],

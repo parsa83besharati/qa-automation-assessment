@@ -9,7 +9,7 @@
     "test:negative": "npx playwright test tests/ui/negative.spec.ts",
     "test:edge": "npx playwright test tests/ui/edge.spec.ts",
     "test:security": "npx playwright test tests/ui/security.spec.ts",
-    "test:api": "npx playwright test tests/api",
+    "test:api": "npx playwright test --project=api",
     "test:chromium": "npx playwright test --project=chromium",
     "test:firefox": "npx playwright test --project=firefox",
     "test:webkit": "npx playwright test --project=webkit",

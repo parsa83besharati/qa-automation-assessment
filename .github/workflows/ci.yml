@@ -25,8 +25,9 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 20, cache: npm }
       - run: npm ci
-      - run: npx playwright install --with-deps chromium
-      - run: npm run test:api -- --project=chromium
+      # API tests use the browser-agnostic `request` fixture: the dedicated
+      # `api` project runs them once, so no browser binaries are installed.
+      - run: npm run test:api
       - uses: actions/upload-artifact@v4
         if: always()
         with: { name: api-report, path: playwright-report/ }
