@@ -4,9 +4,9 @@
 // Five designed scenarios (full detail in Docs/Performance-Test-Plan.md):
 //   1. SMOKE   (this file) — 1 VU, ~30s, functional sanity under minimal load.
 //   2. LOAD    (search-products-load.js) — ramp 5→20 VUs, sustained throughput.
-//   3. STRESS  (designed, not implemented) — ramp to 100 VUs to find the break point.
-//   4. SPIKE   (designed, not implemented) — 5→80 VUs jump, recovery check.
-//   5. SOAK    (designed, not implemented) — 10 VUs for 30m, leak/stability watch.
+//   3. STRESS  (search-products-stress.js) — ramp 10→100 VUs to find the break point.
+//   4. SPIKE   (search-products-spike.js) — 5→80 VUs jump, recovery check.
+//   5. SOAK    (search-products-soak.js) — 10 VUs for DURATION (10m/30m), leak watch.
 //
 // Run: k6 run performance/k6/search-products-smoke.js
 // Env: API_BASE_URL (default https://automationexercise.com)

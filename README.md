@@ -68,6 +68,24 @@ pipelines/ + .github/    Azure, GitLab, GitHub Actions CI
 - Terminal: color `INFO/WARN/ERROR + ➤/✅/❌` steps; files: `logs/framework.log`, `logs/error.log`, `logs/<test>-<ts>.log` attached to the HTML report.
 - Reports: `playwright-report/` + `enhanced-report/` + `test-results/` (video/trace on fail).
 
+## Documentation
+
+Full test design lives in [`Docs/`](./Docs/README.md) — scope, risk register, design techniques,
+per-case steps/expected results and a traceability matrix.
+
+| Document                                                          | Description                                                                             |
+| ----------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| [Docs/README.md](./Docs/README.md)                                | Documentation index, automation mapping, conventions                                    |
+| [Test Design Document](./Docs/Test-Design-Document.md)            | Scope, 12-risk register, 9 design techniques, scenarios S1–S7, traceability, entry/exit |
+| [Comprehensive Checklist](./Docs/Comprehensive-Test-Checklist.md) | Master checklist — 27 Playwright cases + 5 k6 scenarios                                 |
+| [Smoke Suite](./Docs/Smoke-Test-Suite.md)                         | Critical path design, steps, expected results, automation notes                         |
+| [Regression Suite](./Docs/Regression-Test-Suite.md)               | One-requirement-per-case widget coverage                                                |
+| [Negative Suite](./Docs/Negative-Test-Suite.md)                   | Invalid-input design (UI + API), decision tables                                        |
+| [Edge Cases Suite](./Docs/Edge-Cases-Test-Suite.md)               | Boundary value analysis & resilience                                                    |
+| [Security Suite](./Docs/Security-Test-Suite.md)                   | HTTPS / XSS / SQLi / session guards + scope limits                                      |
+| [API Suite](./Docs/API-Test-Suite.md)                             | Behaviour, response contract, latency SLO                                               |
+| [Performance Plan](./Docs/Performance-Test-Plan.md)               | 5 k6 scenarios, threshold derivation, Grafana stack                                     |
+
 ## Task mapping
 
 Task 1 → `pages/HomePage.searchFlow` + `TC-SMOKE-002`; Task 2 → `TC-API-001/002` (live pass); Task 3 → `performance/k6/*` + `Docs/Performance-Test-Plan.md`.
