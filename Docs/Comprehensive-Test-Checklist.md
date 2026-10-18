@@ -1,73 +1,79 @@
 # Comprehensive Test Checklist
 
 **Application:** Booking.com (UI) · AutomationExercise (API) · `POST /api/searchProduct` (perf)  
-**Automation:** Playwright + TypeScript (27 cases) · k6 (5 scenarios)  
+**Automation:** Playwright + TypeScript (33 cases) · k6 (5 scenarios)  
 **Author:** Parsa Besharati  
-**Version:** 2.0  
-**Date:** 2026-10-17
+**Version:** 2.1  
+**Date:** 2026-10-18
 
 ---
 
 ## Test suite summary
 
-| Suite                  | Spec file                     |       Cases | Tags                           | Status                                      |
-| ---------------------- | ----------------------------- | ----------: | ------------------------------ | ------------------------------------------- |
-| Smoke                  | `tests/ui/smoke.spec.ts`      |           2 | `@smoke` `@ui`                 | written (Booking bot wall → triage locally) |
-| Regression             | `tests/ui/regression.spec.ts` |           5 | `@regression` `@ui`            | written                                     |
-| Negative (UI)          | `tests/ui/negative.spec.ts`   |           3 | `@negative` `@ui`              | written                                     |
-| Edge                   | `tests/ui/edge.spec.ts`       |           5 | `@edge` `@ui`                  | written                                     |
-| Security (UI)          | `tests/ui/security.spec.ts`   |           4 | `@security` `@ui`              | written                                     |
-| API                    | `tests/api/products.spec.ts`  |           5 | `@api` `@negative` `@security` | **live pass**                               |
-| API contract & SLO     | `tests/api/contract.spec.ts`  |           3 | `@api` `@contract`             | **live pass**                               |
-| **Total (Playwright)** |                               |      **27** |                                |                                             |
-| Performance (k6)       | `performance/k6/*.js`         | 5 scenarios | —                              | smoke/load/stress/spike/soak implemented    |
+| Suite                  | Spec file                     |       Cases | Tags                                   | Status                                   |
+| ---------------------- | ----------------------------- | ----------: | -------------------------------------- | ---------------------------------------- |
+| Smoke                  | `tests/ui/smoke.spec.ts`      |           2 | `@smoke` `@ui`                         | **live pass** 2026-10-18                 |
+| Regression             | `tests/ui/regression.spec.ts` |           5 | `@regression` `@ui`                    | **live pass** 2026-10-18                 |
+| Negative (UI)          | `tests/ui/negative.spec.ts`   |           5 | `@negative` `@ui`                      | **live pass** 2026-10-18                 |
+| Edge                   | `tests/ui/edge.spec.ts`       |           7 | `@edge` `@ui`                          | **live pass** 2026-10-18                 |
+| Security (UI)          | `tests/ui/security.spec.ts`   |           4 | `@security` `@ui`                      | **live pass** 2026-10-18                 |
+| API                    | `tests/api/products.spec.ts`  |           6 | `@api` `@negative` `@security` `@edge` | **live pass** 2026-10-18                 |
+| API contract & SLO     | `tests/api/contract.spec.ts`  |           4 | `@api` `@contract` `@negative`         | **live pass** 2026-10-18                 |
+| **Total (Playwright)** |                               |      **33** |                                        | **33/33 green**                          |
+| Performance (k6)       | `performance/k6/*.js`         | 5 scenarios | —                                      | smoke/load/stress/spike/soak implemented |
 
-_UI cases repeat across the chromium/firefox/webkit projects; API cases run once in the `api`
-project (browser-agnostic)._
+_UI cases run serially (1 worker — one shared egress IP against a live site, see the comment in
+`playwright.config.ts`) and through `PROXY_SERVER` when Booking geo-blocks the network (R13);
+API cases run once in the `api` project (browser-agnostic). Verified run 2026-10-18:
+**23/23 UI + 10/10 API green**, gates `tsc`/`eslint`/`prettier` all 0._
 
 ---
 
 ## Smoke (`tests/ui/smoke.spec.ts`) — `npm run test:smoke`
 
-- [ ] **TC-SMOKE-001** — Homepage loads with search widget
-- [ ] **TC-SMOKE-002** — Task happy path opens 3rd hotel availability
+- [x] **TC-SMOKE-001** — Homepage loads with search widget _(live pass)_
+- [x] **TC-SMOKE-002** — Task happy path opens 3rd hotel availability _(live pass)_
 
 ---
 
 ## Regression (`tests/ui/regression.spec.ts`) — `npm run test:regression`
 
-- [ ] **TC-REG-001** — Currency can be switched to TRY
-- [ ] **TC-REG-002** — Destination London shows suggestions
-- [ ] **TC-REG-003** — Flexible current-month dates can be selected
-- [ ] **TC-REG-004** — Occupancy supports 8 adults plus pets
-- [ ] **TC-REG-005** — Results render hotel cards with availability
+- [x] **TC-REG-001** — Currency can be switched to TRY _(live pass)_
+- [x] **TC-REG-002** — Destination London shows suggestions _(live pass)_
+- [x] **TC-REG-003** — Flexible current-month dates can be selected _(live pass)_
+- [x] **TC-REG-004** — Occupancy supports 8 adults plus pets _(live pass)_
+- [x] **TC-REG-005** — Results render hotel cards with availability _(live pass)_
 
 ---
 
 ## Negative — UI (`tests/ui/negative.spec.ts`) — `npm run test:negative`
 
-- [ ] **TC-NEG-001** — Empty destination blocks search or shows validation
-- [ ] **TC-NEG-002** — Gibberish destination yields no results or stays put
-- [ ] **TC-NEG-003** — Invalid currency code is rejected gracefully
+- [x] **TC-NEG-001** — Empty destination blocks search or shows validation _(live pass)_
+- [x] **TC-NEG-002** — Gibberish destination yields no results or stays put _(live pass)_
+- [x] **TC-NEG-003** — Invalid currency code is rejected gracefully _(live pass)_
+- [x] **TC-NEG-004** — Adults can never drop below the minimum of 1 _(live pass)_
+- [x] **TC-NEG-005** — Overlong + emoji destination does not break the app _(live pass)_
 
 ---
 
 ## Edge (`tests/ui/edge.spec.ts`) — `npm run test:edge`
 
-- [ ] **TC-EDGE-001** — Maximum adults stays submittable (30)
-- [ ] **TC-EDGE-002** — Second hotel can be opened (index is dynamic)
-- [ ] **TC-EDGE-003** — Transient popup does not break the flow
-- [ ] **TC-EDGE-004** — Tablet viewport (1024×768) keeps search usable
-- [ ] **TC-EDGE-005** — Mobile viewport (390×844) keeps search usable
+- [x] **TC-EDGE-001** — Maximum adults stays submittable (30) _(live pass)_
+- [x] **TC-EDGE-002** — Second hotel can be opened (index is dynamic) _(live pass)_
+- [x] **TC-EDGE-003** — Transient popup does not break the flow _(live pass)_
+- [x] **TC-EDGE-004** — Tablet viewport (1024×768) keeps search usable _(live pass)_
+- [x] **TC-EDGE-005** — Mobile viewport (390×844) keeps search usable _(live pass)_
+- [x] **TC-EDGE-006** — Single adult with pets off is a valid occupancy _(live pass)_
+- [x] **TC-EDGE-007** — Browser back from results restores the widget _(live pass)_
 
 ---
 
 ## Security — UI (`tests/ui/security.spec.ts`) — `npm run test:security`
 
-- [ ] **TC-SEC-001** — Site is served over HTTPS
-- [ ] **TC-SEC-002** — XSS payload in destination does not execute
-- [ ] **TC-SEC-003** — SQL-injection probe is treated as plain text
-- [ ] **TC-SEC-004** — Cookies exist and session can be cleared
+- [x] **TC-SEC-001** — Site is served over HTTPS _(live pass)_
+- [x] **TC-SEC-002** — XSS payload in destination does not execute _(live pass)_
+- [x] **TC-SEC-003** — SQL-injection probe is treated as plain text _(live pass)_
+- [x] **TC-SEC-004** — Cookies exist and session can be cleared _(live pass)_
 
 ---
 
@@ -78,6 +84,7 @@ project (browser-agnostic)._
 - [x] **TC-API-NEG-001** — search without parameter is rejected (400) _(live pass)_
 - [x] **TC-API-NEG-002** — GET on search endpoint is not allowed (405) _(live pass)_
 - [x] **TC-API-SEC-001** — XSS/SQLi probes do not break search _(live pass)_
+- [x] **TC-API-EDGE-001** — exact product-name search returns only matches _(live pass)_
 
 ---
 
@@ -85,6 +92,7 @@ project (browser-agnostic)._
 
 - [x] **TC-API-CONTRACT-001** — productsList matches the response contract _(live pass)_
 - [x] **TC-API-CONTRACT-002** — searchProduct matches the response contract _(live pass)_
+- [x] **TC-API-CONTRACT-NEG-001** — malformed payload fails as an envelope, not a crash _(live pass)_
 - [x] **TC-API-SLO-001** — endpoints stay inside the latency budget (`API_LATENCY_BUDGET_MS`) _(live pass)_
 
 ---

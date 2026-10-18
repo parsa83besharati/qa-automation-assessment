@@ -15,9 +15,9 @@ export class SearchResultsPage extends BasePage {
     super(page);
   }
 
-  public async waitForResults(): Promise<void> {
-    await this.dismissPopupIfPresent();
-    await this.waitForVisible(ResultsLocators.resultsList, 30_000);
+  public async waitForResults(timeoutMs = 30_000): Promise<void> {
+    await this.clearOverlaysIfPresent();
+    await this.waitForVisible(ResultsLocators.resultsList, timeoutMs);
     await this.waitForNetworkIdle();
     const count = await this.countHotels();
     logger.success(`Results loaded → ${count} hotels visible`);
@@ -48,7 +48,7 @@ export class SearchResultsPage extends BasePage {
 
     const target = seeAvailabilityByIndex(oneBasedIndex);
     await this.scrollIntoView(target, `Scroll to hotel #${oneBasedIndex}`);
-    await this.dismissPopupIfPresent();
+    await this.clearOverlaysIfPresent();
 
     const context = this.rawPage.context();
     const [newPage] = await Promise.all([

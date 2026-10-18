@@ -5,8 +5,6 @@ export const ResultsLocators = {
   resultsList: '[data-testid="property-card"], div[data-testid*="property-card"]',
   hotelTitle: '[data-testid="title"]',
   seeAvailability: 'a:has-text("See availability"), button:has-text("See availability")',
-  loadingSkeleton: '[data-testid="skeleton"]',
-  popupClose: 'button[aria-label*="Dismiss"], button[aria-label*="Close"]',
 } as const;
 
 /** Nth hotel card (0-based for Playwright, Task uses 1-based "3rd hotel"). */

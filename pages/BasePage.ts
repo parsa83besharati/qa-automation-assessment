@@ -3,6 +3,7 @@ import { env } from '../config/env';
 import { aiHealer } from '../services/ai-healer';
 import { logger } from '../utils/logger';
 import { NavigationLogger } from '../utils/navigation-logger';
+import { CommonLocators } from './locators/common.locators';
 
 // ---------------------------------------------------------------------------
 // BasePage — single entry point for every UI interaction (Template Method +
@@ -222,24 +223,113 @@ export abstract class BasePage {
   /** Close Booking's occasional promo/popup overlay if it appears (Task note). */
   public async dismissPopupIfPresent(): Promise<boolean> {
     const candidates = [
-      'button[aria-label="Dismiss sign-in info."]',
+      CommonLocators.dismissSignIn,
       'button[aria-label*="Dismiss"]',
       'button:has-text("No thanks")',
-      '[data-testid="close-icon"]',
+      CommonLocators.popupCloseIcon,
     ];
     for (const selector of candidates) {
-      const count = await this.page.locator(selector).count();
-      if (count > 0) {
-        await this.page
-          .locator(selector)
-          .first()
-          .click({ timeout: 5_000 })
-          .catch(() => undefined);
-        logger.info(`🪟 Popup dismissed via ${selector}`);
+      const target = this.page.locator(selector).first();
+      // Visibility (not DOM count): Booking keeps dismissed nodes around hidden,
+      // and clicking a hidden node would burn the full action timeout.
+      if (await target.isVisible().catch(() => false)) {
+        await target.click({ timeout: 5_000 }).catch(() => undefined);
+        if (!(await target.isVisible().catch(() => false))) {
+          logger.info(`🪟 Popup dismissed via ${selector}`);
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  /** Accept the OneTrust cookie banner as soon as it is actually on screen. */
+  public async acceptCookiesIfPresent(): Promise<boolean> {
+    const accept = this.page.locator(CommonLocators.cookieAccept).first();
+    if (await accept.isVisible().catch(() => false)) {
+      await accept.click({ timeout: 5_000 }).catch(() => undefined);
+      if (!(await accept.isVisible().catch(() => false))) {
+        logger.info('🍪 Cookie banner accepted');
         return true;
       }
     }
     return false;
+  }
+
+  /**
+   * One fast pass over every known overlay: closes whatever is on screen right
+   * now and returns immediately when the page is clear (~0 ms when clean), so it
+   * is safe to call before *any* interaction — this is what handles overlays
+   * that appear *mid-flow*, whenever they come in (risk **R06**).
+   */
+  public async clearOverlaysIfPresent(): Promise<number> {
+    let closed = 0;
+    if (await this.acceptCookiesIfPresent()) {
+      closed += 1;
+    }
+    if (await this.dismissPopupIfPresent()) {
+      closed += 1;
+    }
+    return closed;
+  }
+
+  /**
+   * Clear every blocking overlay (cookie banner + sign-in/promo modal) — risk **R06**.
+   *
+   * Measured 2026-10-18 on a fresh context through the egress proxy, relative to
+   * the search widget becoming visible (T0): Genius sign-in modal renders at
+   * ~T0+1.9 s, OneTrust cookie banner at ~T0+3.4 s — i.e. *after* navigation
+   * completes, so one dismissal right after `goto` finds nothing.
+   *
+   * Strategy: poll until the page has been continuously clear for `quietMs`,
+   * never stop before `minObserveMs` (covers those late renderers), hard cap at
+   * `maxMs`.
+   */
+  public async dismissOverlays(
+    minObserveMs = 6_000,
+    quietMs = 1_500,
+    maxMs = 12_000,
+    pollMs = 400,
+  ): Promise<number> {
+    const started = Date.now();
+    let closed = 0;
+    let quietSince = started;
+    for (;;) {
+      const hit = await this.clearOverlaysIfPresent();
+      closed += hit;
+      if (hit > 0 || (await this.anyOverlayVisible())) {
+        quietSince = Date.now();
+      }
+      const elapsed = Date.now() - started;
+      if (elapsed >= minObserveMs && Date.now() - quietSince >= quietMs) {
+        break; // observed long enough and the page has stayed clear
+      }
+      if (elapsed >= maxMs) {
+        break; // never hang, even if an overlay keeps re-rendering
+      }
+      await this.page.waitForTimeout(pollMs);
+    }
+    if (closed > 0) {
+      logger.info(`🪟 Overlays cleared: ${closed}`);
+    }
+    return closed;
+  }
+
+  /** True while a known overlay is actually visible on screen. */
+  private async anyOverlayVisible(): Promise<boolean> {
+    const cookie = await this.page
+      .locator(CommonLocators.cookieBanner)
+      .first()
+      .isVisible()
+      .catch(() => false);
+    if (cookie) {
+      return true;
+    }
+    return this.page
+      .locator(CommonLocators.dismissSignIn)
+      .first()
+      .isVisible()
+      .catch(() => false);
   }
 
   /**

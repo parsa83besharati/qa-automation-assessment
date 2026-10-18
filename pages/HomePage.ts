@@ -2,98 +2,113 @@ import type { Page } from '@playwright/test';
 import { BasePage } from './BasePage';
 import { env } from '../config/env';
 import { logger } from '../utils/logger';
-import { CommonLocators } from './locators/common.locators';
+import { CurrencyPicker } from './components/CurrencyPicker';
+import { DatePicker } from './components/DatePicker';
+import { OccupancyPanel } from './components/OccupancyPanel';
 import { HomeLocators, suggestionByIndex } from './locators/home.locators';
 import type { SearchQuery } from '../data/entities/search-query.entity';
 
 /**
  * Booking.com homepage + search widget (Task 1).
- * All values flow in via {@link SearchQuery} — nothing hard-coded.
+ *
+ * Each widget is its own component — {@link CurrencyPicker}, {@link DatePicker},
+ * {@link OccupancyPanel} — exposed as readonly fields so specs can assert on
+ * widget state directly. This class orchestrates them; all values flow in via
+ * {@link SearchQuery}, nothing Task-specific is hard-coded.
  */
 export class HomePage extends BasePage {
+  public readonly currency: CurrencyPicker;
+  public readonly dates: DatePicker;
+  public readonly occupancy: OccupancyPanel;
+
   public constructor(page: Page) {
     super(page);
+    this.currency = new CurrencyPicker(page);
+    this.dates = new DatePicker(page);
+    this.occupancy = new OccupancyPanel(page);
   }
 
   public async open(): Promise<void> {
     await this.gotoHome();
-    await this.dismissPopupIfPresent();
-    await this.acceptCookiesIfPresent();
-  }
-
-  public async acceptCookiesIfPresent(): Promise<boolean> {
-    if (await this.exists(CommonLocators.cookieAccept)) {
-      await this.click(CommonLocators.cookieAccept, 'Accept cookies');
-      return true;
-    }
-    return false;
+    // Booking serves an AWS WAF challenge first, then renders the cookie banner
+    // and the Genius sign-in modal a few seconds later. Wait for the settled
+    // search widget, then clear every overlay before any interaction (risk R06).
+    await this.waitForVisible(HomeLocators.destinationInput, 30_000).catch(() => undefined);
+    await this.dismissOverlays();
   }
 
   public async selectCurrency(code: string): Promise<void> {
     logger.step(`Currency → ${code}`);
-    await this.click(HomeLocators.currencyButton, 'Open currency picker');
-    await this.waitForVisible(HomeLocators.currencyOption(code), 15_000);
-    await this.click(HomeLocators.currencyOption(code), `Select currency ${code}`);
-    logger.success(`Currency ✔ ${code}`);
+    // Late-arriving overlay insurance: a modal that renders after open() would
+    // sit on top of the dropdown and swallow the TRY option (risk R06).
+    await this.clearOverlaysIfPresent();
+    await this.currency.select(code);
   }
 
-  public async fillDestination(destination: string): Promise<void> {
+  /** Type a destination without requiring any suggestion to appear. */
+  public async typeDestination(destination: string): Promise<void> {
     logger.step(`Destination → ${destination}`);
     await this.click(HomeLocators.destinationInput, 'Focus destination field');
     await this.clear(HomeLocators.destinationInput, 'Clear destination');
     await this.fill(HomeLocators.destinationInput, destination, 'Type destination');
-    await this.waitForVisible(HomeLocators.suggestionList, 15_000);
-    await this.click(suggestionByIndex(0), `Pick first suggestion for "${destination}"`);
-    logger.success(`Destination ✔ ${destination} (first suggestion)`);
+  }
+
+  /** Happy path: type the destination and commit the first autocomplete pick. */
+  public async fillDestination(destination: string): Promise<void> {
+    await this.typeDestination(destination);
+    await this.waitForVisible(HomeLocators.suggestionList, 10_000).catch(() => undefined);
+    if (!(await this.isVisible(HomeLocators.suggestionList))) {
+      // Cold sessions occasionally fail to open the autocomplete on the first
+      // fill (slow suggestion XHR) — retype to retrigger it before giving up.
+      logger.info('Autocomplete did not open — retyping to retrigger');
+      await this.typeDestination(destination);
+      await this.waitForVisible(HomeLocators.suggestionList, 15_000);
+    }
+    await this.pickFirstSuggestion();
+  }
+
+  /** Commit the first autocomplete suggestion — call while the list is open. */
+  public async pickFirstSuggestion(): Promise<void> {
+    await this.click(suggestionByIndex(0), 'Pick first suggestion');
+    // Booking closes the list asynchronously; the next widget click (the
+    // calendar trigger) is swallowed while it is still open. Wait for the
+    // close, then log the resolved value — a field still empty here means the
+    // pick landed before the suggestion payload was ready.
+    await this.waitForHidden(HomeLocators.suggestionList, 5_000).catch(() => undefined);
+    const committed = await this.rawPage
+      .locator(HomeLocators.destinationInput)
+      .first()
+      .inputValue()
+      .catch(() => '?');
+    logger.success(`Destination ✔ first suggestion committed → "${committed}"`);
   }
 
   public async selectFlexibleDatesCurrentMonth(monthLabel?: string): Promise<void> {
     const label = monthLabel ?? env.currentMonth.label;
     logger.step(`Flexible dates → A month → ${label}`);
-    await this.click(HomeLocators.dateTrigger, 'Open calendar');
-    await this.click(HomeLocators.flexibleTab, "Open 'I'm flexible'");
-    await this.click(HomeLocators.monthOption, "Select 'A month'");
-    await this.click(HomeLocators.monthCard(label), `Select month ${label}`);
-    await this.click(HomeLocators.selectDatesButton, 'Confirm Select dates');
-    logger.success(`Dates ✔ ${label}`);
+    await this.clearOverlaysIfPresent();
+    await this.dates.selectFlexibleMonth(label);
   }
 
   public async setAdults(target: number): Promise<void> {
     logger.step(`Adults → ${target}`);
-    await this.click(HomeLocators.occupancyTrigger, 'Open occupancy');
-    const current = await this.readAdultsCount();
-    let diff = target - current;
-    let guard = 40;
-    while (diff !== 0 && guard-- > 0) {
-      if (diff > 0) {
-        await this.click(HomeLocators.adultsIncrease, 'Increase adults');
-        diff -= 1;
-      } else {
-        await this.click(HomeLocators.adultsDecrease, 'Decrease adults');
-        diff += 1;
-      }
-    }
-    logger.success(`Adults ✔ ${target}`);
+    await this.clearOverlaysIfPresent();
+    await this.occupancy.setAdults(target);
   }
 
   public async setTravellingWithPets(enabled: boolean): Promise<void> {
-    if (!(await this.exists(HomeLocators.petsCheckbox))) {
-      logger.warn('Pets checkbox not present on this layout — skipping');
-      return;
-    }
-    const checked = await this.rawPage.isChecked(HomeLocators.petsCheckbox).catch(() => false);
-    if (enabled && !checked) {
-      await this.check(HomeLocators.petsCheckbox, 'Enable travelling with pets');
-    } else if (!enabled && checked) {
-      await this.uncheck(HomeLocators.petsCheckbox, 'Disable travelling with pets');
-    } else {
-      logger.info(`🐾 Pets already ${enabled ? 'enabled' : 'disabled'} — skipping`);
-    }
+    await this.occupancy.setPets(enabled);
   }
 
-  public async submitSearch(): Promise<void> {
-    await this.dismissPopupIfPresent();
+  public async submitSearch(options: { expectNavigation?: boolean } = {}): Promise<void> {
+    const { expectNavigation = true } = options;
+    await this.clearOverlaysIfPresent();
     await this.click(HomeLocators.searchButton, 'Submit search');
+    if (!expectNavigation) {
+      // Negative flows: an invalid query may legitimately never navigate.
+      logger.info('Search submitted — navigation not required');
+      return;
+    }
     await this.waitForUrl('searchresults');
     await this.waitForNetworkIdle();
     logger.success('Search submitted → results page');
@@ -107,16 +122,31 @@ export class HomePage extends BasePage {
     await this.selectFlexibleDatesCurrentMonth(query.flexibleMonthLabel ?? env.currentMonth.label);
     await this.setAdults(query.adults);
     await this.setTravellingWithPets(query.travellingWithPets);
+    await this.occupancy.done(); // close the panel before clicking Search
+    await this.ensureDestination(query.destination);
     await this.submitSearch();
   }
 
-  private async readAdultsCount(): Promise<number> {
-    try {
-      const raw = await this.getAttribute(HomeLocators.adultsCount, 'value');
-      const parsed = Number.parseInt(raw ?? '', 10);
-      return Number.isNaN(parsed) ? 2 : parsed;
-    } catch {
-      return 2;
+  /**
+   * Last-line defense for happy paths: Booking occasionally resets the
+   * destination field (widget re-render / WAF churn) — an empty or uncommitted
+   * field at submit time is answered with "Enter a destination to start
+   * searching." and the whole flow dies late. Re-establish it right before
+   * clicking Search. Negative tests call `submitSearch()` directly on purpose,
+   * so their invalid states are never touched by this.
+   */
+  private async ensureDestination(destination: string): Promise<void> {
+    const value = await this.rawPage
+      .locator(HomeLocators.destinationInput)
+      .first()
+      .inputValue()
+      .catch(() => '');
+    // A committed pick reads "London, Greater London, United Kingdom" — anything
+    // empty or equal to the raw query means the destination is not established.
+    if (value && value !== destination) {
+      return;
     }
+    logger.warn('Destination field was reset — re-establishing before submit');
+    await this.fillDestination(destination);
   }
 }

@@ -82,6 +82,41 @@ export class EnvConfig {
     return (process.env.CI ?? '').toLowerCase() === 'true';
   }
 
+  // ------------------------- Proxy (geo-blocked egress) -------------------------
+
+  /**
+   * Optional egress proxy for the **UI browser** projects.
+   *
+   * Booking.com geo-restricts many networks and answers with
+   * *"We are sorry to inform you that, at this moment, access from your
+   * location is not possible."* — the whole search widget is missing, so every
+   * Task 1 case fails at step one. Set {@link PROXY_SERVER} to route the
+   * browsers through an allowed region and the identical suite passes.
+   *
+   * The `api` project deliberately stays direct: AutomationExercise is not
+   * geo-blocked, and proxying it would only add latency to the SLO assertions.
+   *
+   * @returns Playwright-compatible proxy settings, or `undefined` when unset.
+   */
+  public get proxy(): { server: string; username?: string; password?: string } | undefined {
+    const server = (process.env.PROXY_SERVER ?? '').trim();
+    if (!server) {
+      return undefined;
+    }
+    const username = (process.env.PROXY_USERNAME ?? '').trim();
+    const password = (process.env.PROXY_PASSWORD ?? '').trim();
+    return {
+      server: EnvConfig.normaliseProxyUrl(server),
+      ...(username ? { username } : {}),
+      ...(password ? { password } : {}),
+    };
+  }
+
+  /** True when UI traffic will be routed through {@link proxy}. */
+  public get isProxied(): boolean {
+    return this.proxy !== undefined;
+  }
+
   // ------------------------- Task 1 search defaults -------------------------
 
   public get searchDefaults(): SearchDefaults {
@@ -152,6 +187,15 @@ export class EnvConfig {
     return url;
   }
 
+  /**
+   * Accept `host:port`, `http://host:port` or `socks5://host:port`.
+   * Playwright requires a scheme, so `http://` is assumed when omitted.
+   */
+  public static normaliseProxyUrl(raw: string): string {
+    const trimmed = raw.trim().replace(/\/+$/, '');
+    return /^[a-z][a-z0-9+.-]*:\/\//i.test(trimmed) ? trimmed : `http://${trimmed}`;
+  }
+
   public static joinUrl(base: string, pathOrUrl: string): string {
     if (/^https?:\/\//i.test(pathOrUrl)) {
       return pathOrUrl;
@@ -213,6 +257,7 @@ export function logEnvOnce(label = 'env'): void {
     `[${label}] BOOKING=${env.bookingBaseUrl} API=${env.apiBaseUrl} ` +
       `HEADLESS=${env.headless} HEALING=${env.selfHealingEnabled ? 'ON' : 'OFF'}(${env.healingMode}) ` +
       `SEARCH={currency:${search.currency} destination:${search.destination} adults:${search.adults} pets:${search.travellingWithPets} hotelIndex:${search.targetHotelIndex}} ` +
-      `API_SLO=${env.apiLatencyBudgetMs}ms`,
+      `API_SLO=${env.apiLatencyBudgetMs}ms ` +
+      `PROXY=${env.proxy ? env.proxy.server : 'direct (UI)'}`,
   );
 }

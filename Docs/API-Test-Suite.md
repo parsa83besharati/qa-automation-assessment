@@ -8,7 +8,7 @@
 **Reference:** `https://www.automationexercise.com/api_list`  
 **Purpose:** Functional, negative, security, **contract** and **latency** coverage of the two documented endpoints.  
 **Author:** Parsa Besharati  
-**Date:** 2026-10-17  
+**Date:** 2026-10-18  
 **Version:** 2.0
 
 ---
@@ -44,16 +44,18 @@ every behavioural assertion still passes.
 
 ## Test Cases
 
-| ID                  | Test Case Description                       | Technique                  | Priority | Tags               |
-| ------------------- | ------------------------------------------- | -------------------------- | -------- | ------------------ |
-| TC-API-001          | productsList contains Polo brand products   | Use Case + EP              | P0       | `@api`             |
-| TC-API-002          | searchProduct finds Tshirts category        | Use Case + EP              | P0       | `@api`             |
-| TC-API-NEG-001      | Search without parameter is rejected (400)  | Decision Table + Negative  | P1       | `@api` `@negative` |
-| TC-API-NEG-002      | GET on search endpoint is not allowed (405) | Decision Table + Negative  | P1       | `@api` `@negative` |
-| TC-API-SEC-001      | XSS/SQLi probes do not break search         | Negative + Error Guessing  | P1       | `@api` `@security` |
-| TC-API-CONTRACT-001 | productsList matches the response contract  | Contract (Schema)          | P1       | `@api` `@contract` |
-| TC-API-CONTRACT-002 | searchProduct matches the response contract | Contract (Schema)          | P1       | `@api` `@contract` |
-| TC-API-SLO-001      | Endpoints stay inside the latency budget    | Threshold (Non-functional) | P1       | `@api` `@contract` |
+| ID                      | Test Case Description                               | Technique                  | Priority | Tags                           |
+| ----------------------- | --------------------------------------------------- | -------------------------- | -------- | ------------------------------ |
+| TC-API-001              | productsList contains Polo brand products           | Use Case + EP              | P0       | `@api`                         |
+| TC-API-002              | searchProduct finds Tshirts category                | Use Case + EP              | P0       | `@api`                         |
+| TC-API-NEG-001          | Search without parameter is rejected (400)          | Decision Table + Negative  | P1       | `@api` `@negative`             |
+| TC-API-NEG-002          | GET on search endpoint is not allowed (405)         | Decision Table + Negative  | P1       | `@api` `@negative`             |
+| TC-API-SEC-001          | XSS/SQLi probes do not break search                 | Negative + Error Guessing  | P1       | `@api` `@security`             |
+| TC-API-EDGE-001         | Exact product-name search returns only matches      | Boundary Value Analysis    | P3       | `@api` `@edge`                 |
+| TC-API-CONTRACT-001     | productsList matches the response contract          | Contract (Schema)          | P1       | `@api` `@contract`             |
+| TC-API-CONTRACT-002     | searchProduct matches the response contract         | Contract (Schema)          | P1       | `@api` `@contract`             |
+| TC-API-CONTRACT-NEG-001 | Malformed payload fails as an envelope, not a crash | Contract (negative)        | P2       | `@api` `@contract` `@negative` |
+| TC-API-SLO-001          | Endpoints stay inside the latency budget            | Threshold (Non-functional) | P1       | `@api` `@contract`             |
 
 ---
 
@@ -235,21 +237,70 @@ either surfaces here and in CONTRACT-001 independently.
 
 ---
 
+### TC-API-EDGE-001 — Exact Product-Name Search Returns Only Matching Products
+
+**Scenario Reference:** S6.9 · **Tags:** `@api` `@edge`  
+**Priority:** P3 · **Severity:** minor  
+**Technique:** Boundary Value Analysis (longest meaningful query)
+
+**Test Steps:**
+
+1. `apiClient.getAllProducts()` → take `exactName = products[0].name` (sourced at runtime, never hard-coded).
+2. `apiClient.searchProducts(exactName)` verbatim.
+3. Assert `matched.length > 0`.
+4. Assert every returned `product.name` contains `exactName` (case-insensitive).
+
+**Expected Results:**
+
+- A full-name search behaves as an exact boundary: matches exist and **no** false positives.
+
+**Automation Notes:**
+
+- The name comes from the API itself, so shared demo-data churn (risk **R07**) cannot fake a pass.
+
+---
+
+### TC-API-CONTRACT-NEG-001 — Malformed Search Payload Fails as an Envelope, Not a Crash
+
+**Scenario Reference:** S6.10 · **Tags:** `@api` `@contract` `@negative`  
+**Priority:** P2 · **Severity:** normal  
+**Technique:** Negative Testing (contract negative)
+
+**Test Steps:**
+
+1. `POST /api/searchProduct` with a JSON body (`{ search_product: { nested: … } }`) — the wrong
+   content type for a form endpoint.
+2. Assert `status < 500` — malformed input must never 5xx.
+3. Assert the body is not an HTML/stack-trace page (`/stack trace|exception in|<html/i`).
+4. Parse as JSON (non-JSON fails) → assert a numeric `responseCode` (the documented envelope).
+
+**Expected Results:**
+
+- Garbage input still answers with the error **envelope** — never a 5xx, HTML error page, or a
+  stack-trace leak.
+
+**Automation Notes:**
+
+- Complements S6.6/S6.7 (happy-path contract) on the negative side; guards risk **R05**
+  (silent schema drift / crash leaks).
+
+---
+
 ## Run Subsets
 
 | Command                                | Selection                               | Cases |
 | -------------------------------------- | --------------------------------------- | ----: |
-| `npm run test:api`                     | whole `api` project                     |     8 |
+| `npm run test:api`                     | whole `api` project                     |    10 |
 | `npm run test:ci`                      | `@smoke` or `@api` (chromium + api)     |    12 |
-| `npm run test:fast`                    | everything except `@regression`/`@edge` |    17 |
-| `npm run test:negative-api`            | `@negative` or `@security` in `api`     |     3 |
-| `npx playwright test --grep @contract` | contract/SLO only                       |     3 |
+| `npm run test:fast`                    | everything except `@regression`/`@edge` |    20 |
+| `npm run test:negative-api`            | `@negative` or `@security` in `api`     |     4 |
+| `npx playwright test --grep @contract` | contract/SLO only                       |     4 |
 
 ---
 
 ## Execution Order & Dependencies
 
-1. All 8 cases are independent — no shared state, safe in any order, fully parallel.
+1. All 10 cases are independent — no shared state, safe in any order, fully parallel.
 2. No browser binaries required; only network access to `automationexercise.com`.
 3. Contract and SLO cases re-issue their own HTTP calls (they do not reuse behavioural responses)
    so each layer is honest.
@@ -258,7 +309,7 @@ either surfaces here and in CONTRACT-001 independently.
 
 ## Success Criteria
 
-- **8/8 green** is the hard gate for Task 2 (entry criterion for the build).
+- **10/10 green** is the hard gate for Task 2 (entry criterion for the build).
 - Contract violations `[]` on both endpoints; both calls `< API_LATENCY_BUDGET_MS`.
 - Wall-clock target: **< 5 seconds** for the full project.
 - These cases are the API half of `npm run test:ci` — the PR check.

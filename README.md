@@ -1,7 +1,7 @@
 # QA Automation Assessment — Playwright TS (POM + Self-Healing) + k6
 
 Booking.com UI (Task 1) · AutomationExercise API (Task 2) · k6 perf (Task 3).
-Architecture mirrors `parsa83besharati/playwright-ecommerce-ui-automation-framework` — with a better logger, separate locator files, and offline-first healing.
+Page-object model with per-widget locator files, structured logging, and an offline-first self-healing layer.
 
 ## Quick start
 
@@ -10,7 +10,7 @@ npm install
 npx playwright install --with-deps
 cp .env.example .env        # set SELF_HEALING_ENABLED=true + LLM keys to enable AI healing
 npm run test:api            # Task 2 — live green (Polo + Tshirts)
-npm run test:smoke          # Task 1 happy path (Booking — may need HEADLESS=false headed locally)
+npm run test:smoke          # Task 1 happy path (Booking geo-blocks you? set PROXY_SERVER in .env — see Config)
 npm run perf:smoke          # Task 3 — k6 smoke (live trial: 100% checks, p95≈869ms)
 npm run perf:stack          # observability: InfluxDB + Grafana on localhost:3000 (admin/admin)
 npm run perf:smoke:grafana  # same k6 smoke with --out influxdb= → live Grafana dashboard
@@ -40,14 +40,15 @@ API tests are pure HTTP (`request` fixture) and therefore **browser-agnostic** �
 
 ```
 config/env.ts            Singleton EnvConfig — TRY/London/8/pets/hotel#3, current month, URLs
-pages/BasePage.ts        Abstract healable actions (all clicks/fills heal)
-pages/*.ts               HomePage (Task 1 flow), SearchResultsPage (Nth hotel)
-pages/locators/*.ts      SEPARATE locator files — home / results / common + dynamic builders
+pages/BasePage.ts        Abstract healable actions (all clicks/fills heal) + timed overlay clearing
+pages/components/        DatePicker · CurrencyPicker · OccupancyPanel (search-widget parts)
+pages/*.ts               HomePage (Task 1 orchestrator), SearchResultsPage (Nth hotel)
+pages/locators/*.ts      SEPARATE locator files — home / results / currency / date / occupancy / common
 fixtures/                fixtures.ts (page-object + apiClient injection), viewport.ts
 services/ai-healer.ts    OFF by default; heuristic → DeepSeek>OpenAI>Anthropic>local + cache
 services/api-client.ts   AutomationExercise (productsList / searchProduct + Polo/Tshirts filters)
 data/                    entities / builders / factories / registry(singleton) / templates / scenarios
-tests/ui|api/            19 UI + 5 API cases with tags @smoke @regression @negative @edge @security @api
+tests/ui|api/            23 UI + 10 API cases with tags @smoke @regression @negative @edge @security @api
 performance/k6/          5 k6 scripts (smoke/load/stress/spike/soak)
 utils/                   pretty winston+chalk logger, per-test files, NavigationLogger
 Docs/                    design doc + per-suite steps + API/perf plans + master checklist
@@ -56,12 +57,13 @@ pipelines/ + .github/    Azure, GitLab, GitHub Actions CI
 
 ## Config
 
-| Var                                                                           | Default                              | Notes                  |
-| ----------------------------------------------------------------------------- | ------------------------------------ | ---------------------- |
-| `BOOKING_BASE_URL` / `API_BASE_URL`                                           | booking.com / automationexercise.com | origins                |
-| `DEFAULT_CURRENCY/DESTINATION/ADULTS/TRAVELLING_WITH_PETS/TARGET_HOTEL_INDEX` | TRY/London/8/true/3                  | Task 1 data (dynamic!) |
-| `SELF_HEALING_ENABLED` / `HEALING_MODE`                                       | false / runtime                      | healing flag           |
-| `LOG_LEVEL` / `LOG_PRETTY`                                                    | info / true                          | pretty colors          |
+| Var                                                                           | Default                              | Notes                                                                                                                                             |
+| ----------------------------------------------------------------------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `BOOKING_BASE_URL` / `API_BASE_URL`                                           | booking.com / automationexercise.com | origins                                                                                                                                           |
+| `DEFAULT_CURRENCY/DESTINATION/ADULTS/TRAVELLING_WITH_PETS/TARGET_HOTEL_INDEX` | TRY/London/8/true/3                  | Task 1 data (dynamic!)                                                                                                                            |
+| `SELF_HEALING_ENABLED` / `HEALING_MODE`                                       | false / runtime                      | healing flag                                                                                                                                      |
+| `PROXY_SERVER` / `PROXY_USERNAME` / `PROXY_PASSWORD`                          | (unset = direct)                     | egress proxy for the UI browsers — Booking.com geo-blocks many networks ("access from your location is not possible"); `api` project stays direct |
+| `LOG_LEVEL` / `LOG_PRETTY`                                                    | info / true                          | pretty colors                                                                                                                                     |
 
 ## Logs & reports
 
@@ -76,8 +78,8 @@ per-case steps/expected results and a traceability matrix.
 | Document                                                          | Description                                                                             |
 | ----------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
 | [Docs/README.md](./Docs/README.md)                                | Documentation index, automation mapping, conventions                                    |
-| [Test Design Document](./Docs/Test-Design-Document.md)            | Scope, 12-risk register, 9 design techniques, scenarios S1–S7, traceability, entry/exit |
-| [Comprehensive Checklist](./Docs/Comprehensive-Test-Checklist.md) | Master checklist — 27 Playwright cases + 5 k6 scenarios                                 |
+| [Test Design Document](./Docs/Test-Design-Document.md)            | Scope, 13-risk register, 9 design techniques, scenarios S1–S7, traceability, entry/exit |
+| [Comprehensive Checklist](./Docs/Comprehensive-Test-Checklist.md) | Master checklist — 33 Playwright cases + 5 k6 scenarios                                 |
 | [Smoke Suite](./Docs/Smoke-Test-Suite.md)                         | Critical path design, steps, expected results, automation notes                         |
 | [Regression Suite](./Docs/Regression-Test-Suite.md)               | One-requirement-per-case widget coverage                                                |
 | [Negative Suite](./Docs/Negative-Test-Suite.md)                   | Invalid-input design (UI + API), decision tables                                        |

@@ -4,10 +4,10 @@
 
 **Application:** Booking.com (UI) · AutomationExercise (API)  
 **Bases:** `BOOKING_BASE_URL` / `API_BASE_URL` — resolved by `config/env.ts` from `.env`  
-**Automation:** 27 Playwright cases in `tests/ui/**` + `tests/api/**`, 5 k6 scenarios in `performance/k6/**` — see [Docs/README.md](./README.md)  
+**Automation:** 33 Playwright cases in `tests/ui/**` + `tests/api/**`, 5 k6 scenarios in `performance/k6/**` — see [Docs/README.md](./README.md)  
 **Task reference:** `Task.pdf` — Task 1 Booking.com search flow · Task 2 `productsList` + `searchProduct` API · Task 3 performance scenarios  
 **Author:** Parsa Besharati  
-**Date:** 2026-10-17  
+**Date:** 2026-10-18  
 **Version:** 2.0
 
 ---
@@ -74,20 +74,21 @@
 
 ## 2. Risk Assessment
 
-| Risk ID | Risk Description                                                             | Impact | Likelihood | Priority | Mitigation                                                                                                                                                     |
-| ------- | ---------------------------------------------------------------------------- | ------ | ---------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **R01** | Booking bot protection / CAPTCHA blocks automated sessions                   | High   | Medium     | P0       | Healable `BasePage`, heuristic+LLM self-healing flag (`SELF_HEALING_ENABLED`), popup/cookie dismissal, generous timeouts, `HEADLESS=false` headed runs locally |
-| **R02** | A/B layouts & locale variants change widget markup (currency/date/occupancy) | Medium | High       | P1       | Centralised `pages/locators/*.locators.ts`, `locate(testId, fallback)` chains, cached selector healing, one requirement per regression case                    |
-| **R03** | Search results ordering is dynamic (the "3rd hotel" moves)                   | Medium | Medium     | P1       | Index-parameterised `openHotelByIndex(n)` (`TARGET_HOTEL_INDEX`), `TC-EDGE-002` proves index 2 works too, assertions use patterns not names                    |
-| **R04** | Public AutomationExercise latency variance causes flaky perf assertions      | Medium | Medium     | P1       | Budgets derived from live trials (smoke p95≈869ms → 1500ms), k6 thresholds with headroom, retries only in CI                                                   |
-| **R05** | API schema drifts silently (new/renamed fields, nested type change)          | Medium | Medium     | P1       | `TC-API-CONTRACT-001/002` strict validator — unknown keys fail (`services/api-schema.ts`), catches `category.usertype` nesting                                 |
-| **R06** | Transient overlays (sign-in, promo, cookies) intercept clicks                | Medium | High       | P1       | `dismissPopupIfPresent()` before interactions, `TC-EDGE-003` regression-guards the helper, cookie acceptance in `open()`                                       |
-| **R07** | Shared public demo data (products/price) changes between runs                | Low    | Medium     | P2       | Assertions on structure/counts (`>0`, brand/category membership) instead of hard-coded names where possible                                                    |
-| **R08** | LLM keys unavailable → AI healing cannot run                                 | Low    | High       | P2       | Healing off by default; heuristic layer works keyless; tests must pass with `SELF_HEALING_ENABLED=false`                                                       |
-| **R09** | Load tests hammer the public demo host                                       | High   | Low        | P1       | Low VU ceilings (max 100, brief), short scenarios, documented in the perf plan                                                                                 |
-| **R10** | Network/timeouts make UI tests flaky                                         | Medium | Medium     | P1       | `waitForResults()` explicit waits, no fixed `sleep`, retries configured in `playwright.config.ts`, per-test logs                                               |
-| **R11** | Browser binaries missing for firefox/webkit on a machine                     | Medium | Medium     | P1       | API project needs no browsers; UI jobs install browsers in CI; documented entry criteria                                                                       |
-| **R12** | Latency SLO fails on a slow day and blocks the pipeline                      | Medium | Low        | P2       | Budget overridable via `API_LATENCY_BUDGET_MS`; result attached to Allure as `api-latency-ms` for triage                                                       |
+| Risk ID | Risk Description                                                                                                                                                                                                                                                          | Impact | Likelihood           | Priority | Mitigation                                                                                                                                                                                                                                                                                                       |
+| ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ | -------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **R01** | Booking bot protection / CAPTCHA blocks automated sessions                                                                                                                                                                                                                | High   | Medium               | P0       | Healable `BasePage`, heuristic+LLM self-healing flag (`SELF_HEALING_ENABLED`), popup/cookie dismissal, generous timeouts, `HEADLESS=false` headed runs locally                                                                                                                                                   |
+| **R02** | A/B layouts & locale variants change widget markup (currency/date/occupancy)                                                                                                                                                                                              | Medium | High                 | P1       | Centralised `pages/locators/*.locators.ts`, `locate(testId, fallback)` chains, cached selector healing, one requirement per regression case                                                                                                                                                                      |
+| **R03** | Search results ordering is dynamic (the "3rd hotel" moves)                                                                                                                                                                                                                | Medium | Medium               | P1       | Index-parameterised `openHotelByIndex(n)` (`TARGET_HOTEL_INDEX`), `TC-EDGE-002` proves index 2 works too, assertions use patterns not names                                                                                                                                                                      |
+| **R04** | Public AutomationExercise latency variance causes flaky perf assertions                                                                                                                                                                                                   | Medium | Medium               | P1       | Budgets derived from live trials (smoke p95≈869ms → 1500ms), k6 thresholds with headroom, retries only in CI                                                                                                                                                                                                     |
+| **R05** | API schema drifts silently (new/renamed fields, nested type change)                                                                                                                                                                                                       | Medium | Medium               | P1       | `TC-API-CONTRACT-001/002` strict validator — unknown keys fail (`services/api-schema.ts`), catches `category.usertype` nesting                                                                                                                                                                                   |
+| **R06** | Transient overlays (sign-in, promo, cookies) intercept clicks — **measured 2026-10-18:** relative to the search widget becoming visible, the Genius modal renders at ~+1.9 s and the OneTrust cookie banner at ~+3.4 s, i.e. _after_ navigation completes                 | Medium | High                 | P1       | `dismissOverlays()` settle-wait in `open()` (never stops before 6 s, needs 1.5 s of quiet, capped at 12 s) + `clearOverlaysIfPresent()` guards before every interaction; all checks use `isVisible()` not DOM count; `TC-EDGE-003` regression-guards the helper — **verified live 2026-10-18**                   |
+| **R07** | Shared public demo data (products/price) changes between runs                                                                                                                                                                                                             | Low    | Medium               | P2       | Assertions on structure/counts (`>0`, brand/category membership) instead of hard-coded names where possible                                                                                                                                                                                                      |
+| **R08** | LLM keys unavailable → AI healing cannot run                                                                                                                                                                                                                              | Low    | High                 | P2       | Healing off by default; heuristic layer works keyless; tests must pass with `SELF_HEALING_ENABLED=false`                                                                                                                                                                                                         |
+| **R09** | Load tests hammer the public demo host                                                                                                                                                                                                                                    | High   | Low                  | P1       | Low VU ceilings (max 100, brief), short scenarios, documented in the perf plan                                                                                                                                                                                                                                   |
+| **R10** | Network/timeouts make UI tests flaky                                                                                                                                                                                                                                      | Medium | Medium               | P1       | `waitForResults()` explicit waits, no fixed `sleep`, retries configured in `playwright.config.ts`, per-test logs                                                                                                                                                                                                 |
+| **R11** | Browser binaries missing for firefox/webkit on a machine                                                                                                                                                                                                                  | Medium | Medium               | P1       | API project needs no browsers; UI jobs install browsers in CI; documented entry criteria                                                                                                                                                                                                                         |
+| **R12** | Latency SLO fails on a slow day and blocks the pipeline                                                                                                                                                                                                                   | Medium | Low                  | P2       | Budget overridable via `API_LATENCY_BUDGET_MS`; result attached to Allure as `api-latency-ms` for triage                                                                                                                                                                                                         |
+| **R13** | **Observed 2026-10-18:** Booking.com geo-restricts the runner's network — the homepage answers _"We are sorry to inform you that, at this moment, access from your location is not possible."_ and the whole search widget is missing, so every UI case fails at step one | High   | **High (confirmed)** | P0       | **Mitigation verified live 2026-10-18.** Egress proxy support: `PROXY_SERVER`/`PROXY_USERNAME`/`PROXY_PASSWORD` in `config/env.ts` wired into `use.proxy` for the three browser projects (`api` stays direct); only a loopback address goes in the gitignored `.env`, no node credentials are stored in the repo |
 
 ---
 
@@ -258,6 +259,33 @@ State chain: _calendar closed → flexible mode → granularity → month chosen
 
 ---
 
+#### S3.4 – Adults Lower Bound Is Enforced by the UI
+
+**Priority:** P3 · **Technique:** Boundary Value Analysis (lower bound), Negative Testing  
+**Data:** `BookingTemplates.negative()[1]` → `adults: 0`  
+**Automated by:** `TC-NEG-004`
+
+**Flow:** `open()` → open the occupancy panel → read the adults slider's `min`.  
+**Expected:** `min="1"` and the current value ≥ 1 — a query demanding 0 adults is unwinnable by
+design, so the suite asserts the bound instead of pretending to set it.  
+**Risk Mapped:** R02
+
+---
+
+#### S3.5 – Overlong + Emoji Destination Stays Harmless
+
+**Priority:** P3 · **Technique:** Negative Testing, Robustness (fuzz-lite)  
+**Data:** `SearchFactory.longDestination()` → default destination + 250 `x` + emoji 🌍  
+**Automated by:** `TC-NEG-005`
+
+**Flow:** `open()` → `typeDestination(payload)` → `submitSearch({ expectNavigation: false })` →
+settle → inspect URL and widget.  
+**Expected:** still on `booking.com`, no error page, destination input still usable — hostile
+length/unicode never crashes the app.  
+**Risk Mapped:** R02, R10
+
+---
+
 ### S4 – Boundary Values & Resilience (Edge)
 
 #### S4.1 – Maximum Adults (30) Stays Submittable
@@ -303,6 +331,30 @@ Boundaries: 1 (min) → 8 (task) → **30 (max, tested)**; 0 rejected by the wid
 **Flow:** `setViewport(preset)` → `open()` → assert submit button visible.  
 **Expected:** the search widget survives responsive re-layout; no horizontal collapse hiding Search.  
 **Risk Mapped:** R02, R06
+
+---
+
+#### S4.6 – Single Adult With Pets Off Is a Valid Occupancy
+
+**Priority:** P3 · **Technique:** Boundary Value Analysis (lower bound)  
+**Data:** `BookingTemplates.smoke()` → 1 adult, no pets  
+**Automated by:** `TC-EDGE-006`
+
+**Flow:** `open()` → `setAdults(1)` → assert the slider reports 1 → `setTravellingWithPets(false)` →
+assert the checkbox is off → Search still enabled.  
+**Expected:** the opposite boundary of S4.1 stays fully submittable.  
+**Risk Mapped:** R02
+
+---
+
+#### S4.7 – Browser Back From Results Restores the Search Widget
+
+**Priority:** P3 · **Technique:** State Transition (navigation)  
+**Automated by:** `TC-EDGE-007`
+
+**Flow:** full `searchFlow()` → `waitForResults()` → `page.goBack()` → assert destination input.  
+**Expected:** back-navigation returns to a usable homepage — the flow is recoverable.  
+**Risk Mapped:** R10
 
 ---
 
@@ -469,6 +521,32 @@ attach `api-latency-ms` JSON to the Allure report → assert `ms < API_LATENCY_B
 
 ---
 
+#### S6.9 – Exact Product-Name Search Returns Only Matching Products
+
+**Priority:** P3 · **Technique:** Boundary Value Analysis (longest meaningful query)  
+**Automated by:** `TC-API-EDGE-001`
+
+**Flow:** take a real product name from `productsList` → `searchProducts(name)` verbatim →
+assert `length > 0` and every hit contains the name.  
+**Expected:** a full-name search behaves as an exact boundary — no false positives.  
+**Risk Mapped:** R07
+
+---
+
+#### S6.10 – Malformed Search Payload Fails as an Envelope, Not a Crash
+
+**Priority:** P2 · **Technique:** Negative Testing (contract negative)  
+**Automated by:** `TC-API-CONTRACT-NEG-001`
+
+**Flow:** `POST /api/searchProduct` with a JSON body (wrong content type for a form endpoint) →
+assert `status < 500` → body is not an HTML/stack-trace page → parses as JSON with a numeric
+`responseCode`.  
+**Expected:** garbage input still answers with the documented error envelope — never a 5xx or a
+leak.  
+**Risk Mapped:** R05
+
+---
+
 ### S7 – Performance & Observability
 
 Design detail lives in [Performance-Test-Plan.md](./Performance-Test-Plan.md); scenario-level view:
@@ -517,36 +595,40 @@ k6 metrics with `--out influxdb=`.
 | Calendar: I'm flexible → A month → current month → Select dates | TC-REG-003, TC-SMOKE-002                  | [Regression](./Regression-Test-Suite.md)  |
 | Adults → 8, "Travelling with pets" ON                           | TC-REG-004, TC-SMOKE-002                  | [Regression](./Regression-Test-Suite.md)  |
 | Search → 3rd hotel "See availability", close popup              | TC-SMOKE-002, TC-REG-005, TC-EDGE-002/003 | [Smoke](./Smoke-Test-Suite.md)            |
-| Invalid/absent inputs handled                                   | TC-NEG-001/002/003                        | [Negative](./Negative-Test-Suite.md)      |
-| Boundaries (30 adults, dynamic index, viewports)                | TC-EDGE-001…005                           | [Edge](./Edge-Cases-Test-Suite.md)        |
+| Invalid/absent inputs handled                                   | TC-NEG-001…005                            | [Negative](./Negative-Test-Suite.md)      |
+| Boundaries (30/1 adults, dynamic index, viewports, back-nav)    | TC-EDGE-001…007                           | [Edge](./Edge-Cases-Test-Suite.md)        |
 | Transport & input safety                                        | TC-SEC-001…004                            | [Security](./Security-Test-Suite.md)      |
 | API `productsList` → Polo names in terminal                     | TC-API-001                                | [API](./API-Test-Suite.md)                |
 | API `searchProduct` → Tshirts in response                       | TC-API-002                                | [API](./API-Test-Suite.md)                |
 | API negatives (missing param, wrong method, XSS/SQLi)           | TC-API-NEG-001/002, TC-API-SEC-001        | [API](./API-Test-Suite.md)                |
 | _(Engineering addition)_ response contract                      | TC-API-CONTRACT-001/002                   | [API](./API-Test-Suite.md)                |
+| _(Engineering addition)_ malformed payload (contract negative)  | TC-API-CONTRACT-NEG-001                   | [API](./API-Test-Suite.md)                |
+| _(Engineering addition)_ exact-name search boundary             | TC-API-EDGE-001                           | [API](./API-Test-Suite.md)                |
 | _(Engineering addition)_ latency SLO                            | TC-API-SLO-001                            | [API](./API-Test-Suite.md)                |
 | Perf 5 scenarios (2+ required)                                  | k6 smoke/load/stress/spike/soak           | [Performance](./Performance-Test-Plan.md) |
 | _(Engineering addition)_ live metrics                           | Grafana stack, 14-panel dashboard         | [Performance](./Performance-Test-Plan.md) |
 
 ### 5.2 Scenario → Risk
 
-| Scenario   | Risk(s) Mapped     |
-| ---------- | ------------------ |
-| S1.1       | R01, R06, R10      |
-| S1.2       | R01, R02, R03, R06 |
-| S2.1–S2.5  | R02, R03, R07, R10 |
-| S3.1–S3.3  | R02, R07, R10      |
-| S4.1       | R02                |
-| S4.2       | R03                |
-| S4.3       | R06                |
-| S4.4, S4.5 | R02, R06           |
-| S5.1–S5.3  | R01, R02           |
-| S5.4       | R07, R10           |
-| S6.1, S6.2 | R04, R05, R07      |
-| S6.3–S6.5  | R05, R07           |
-| S6.6, S6.7 | R05                |
-| S6.8       | R04, R12           |
-| S7.1–S7.5  | R04, R09           |
+| Scenario    | Risk(s) Mapped     |
+| ----------- | ------------------ |
+| S1.1        | R01, R06, R10      |
+| S1.2        | R01, R02, R03, R06 |
+| S2.1–S2.5   | R02, R03, R07, R10 |
+| S3.1–S3.5   | R02, R07, R10      |
+| S4.1        | R02                |
+| S4.2        | R03                |
+| S4.3        | R06                |
+| S4.4, S4.5  | R02, R06           |
+| S4.6, S4.7  | R02, R10           |
+| S5.1–S5.3   | R01, R02           |
+| S5.4        | R07, R10           |
+| S6.1, S6.2  | R04, R05, R07      |
+| S6.3–S6.5   | R05, R07           |
+| S6.6, S6.7  | R05                |
+| S6.8        | R04, R12           |
+| S6.9, S6.10 | R05, R07           |
+| S7.1–S7.5   | R04, R09           |
 
 ---
 
@@ -557,13 +639,16 @@ k6 metrics with `--out influxdb=`.
 1. `npm ci` (lockfile committed) and `npx playwright install chromium` for the UI suites.
 2. `.env` created from `.env.example` — `BOOKING_BASE_URL`, `API_BASE_URL` at minimum.
 3. Network reachability to `booking.com` and `automationexercise.com` (public targets).
+   **Task 1 caveat (risk R13):** if the runner's network is geo-blocked by Booking.com
+   (homepage shows _"access from your location is not possible"_), set `PROXY_SERVER`
+   to an allowed egress — otherwise every UI case fails at step one.
 4. Optional: LLM keys for AI healing (`SELF_HEALING_ENABLED=true`); heuristic healing is keyless.
 5. Performance only: Docker Desktop running (`npm run perf:stack`).
 
 **Exit**
 
 1. `npm run typecheck`, `npm run lint:check`, `npm run format:check` all exit 0.
-2. API suite green (`npm run test:api` → 8/8), contract violations `[]`, both endpoints inside the SLO.
+2. API suite green (`npm run test:api` → 10/10), contract violations `[]`, both endpoints inside the SLO.
 3. UI suites executed and triaged — any Booking bot-wall block documented with evidence
    (Allure attachment + log) rather than silently retried.
 4. k6 smoke green (`p95 < 1500ms`, `err < 1%`); load/stress/spike/soak recorded in the perf plan.
@@ -573,22 +658,27 @@ k6 metrics with `--out influxdb=`.
 
 ## 7. Environments & Configuration
 
-| Variable                   | Default                          | Purpose                                                  |
-| -------------------------- | -------------------------------- | -------------------------------------------------------- |
-| `BOOKING_BASE_URL`         | `https://www.booking.com`        | UI origin                                                |
-| `API_BASE_URL`             | `https://automationexercise.com` | API origin                                               |
-| `HEADLESS`                 | `true`                           | `false` for headed local runs vs the bot wall            |
-| `DEFAULT_CURRENCY`         | `TRY`                            | Task 1 currency                                          |
-| `DEFAULT_DESTINATION`      | `London`                         | Task 1 destination                                       |
-| `DEFAULT_ADULTS`           | `8`                              | Task 1 occupancy                                         |
-| `TRAVELLING_WITH_PETS`     | `true`                           | Task 1 pets flag                                         |
-| `TARGET_HOTEL_INDEX`       | `3`                              | Which result card to open                                |
-| `API_LATENCY_BUDGET_MS`    | `1500`                           | SLO for one API call (mirrors k6 `p95 < 1500`)           |
-| `SELF_HEALING_ENABLED`     | `false`                          | Master switch for selector healing                       |
-| `HEALING_MODE`             | `runtime`                        | `runtime` heals during the test, `post-mortem` only logs |
-| `LOG_LEVEL` / `LOG_PRETTY` | `info` / `true`                  | winston console level / colors                           |
+| Variable                            | Default                          | Purpose                                                                                                                      |
+| ----------------------------------- | -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `BOOKING_BASE_URL`                  | `https://www.booking.com`        | UI origin                                                                                                                    |
+| `API_BASE_URL`                      | `https://automationexercise.com` | API origin                                                                                                                   |
+| `HEADLESS`                          | `true`                           | `false` for headed local runs vs the bot wall                                                                                |
+| `DEFAULT_CURRENCY`                  | `TRY`                            | Task 1 currency                                                                                                              |
+| `DEFAULT_DESTINATION`               | `London`                         | Task 1 destination                                                                                                           |
+| `DEFAULT_ADULTS`                    | `8`                              | Task 1 occupancy                                                                                                             |
+| `TRAVELLING_WITH_PETS`              | `true`                           | Task 1 pets flag                                                                                                             |
+| `TARGET_HOTEL_INDEX`                | `3`                              | Which result card to open                                                                                                    |
+| `API_LATENCY_BUDGET_MS`             | `1500`                           | SLO for one API call (mirrors k6 `p95 < 1500`)                                                                               |
+| `SELF_HEALING_ENABLED`              | `false`                          | Master switch for selector healing                                                                                           |
+| `HEALING_MODE`                      | `runtime`                        | `runtime` heals during the test, `post-mortem` only logs                                                                     |
+| `PROXY_SERVER`                      | _(unset = direct)_               | Egress proxy for the UI browsers — Booking.com geo-blocks some networks (R13). Accepts `host:port`, `http://…`, `socks5://…` |
+| `PROXY_USERNAME` / `PROXY_PASSWORD` | _(unset)_                        | Optional basic-auth for the proxy                                                                                            |
+| `LOG_LEVEL` / `LOG_PRETTY`          | `info` / `true`                  | winston console level / colors                                                                                               |
 
 **Playwright projects:** `chromium`, `firefox`, `webkit` (UI only) + `api` (browser-agnostic).
+The proxy applies to the three browser projects only — the `api` project always connects
+directly (AutomationExercise is not geo-blocked, and proxying it would only add latency to
+the SLO assertions).
 Reporters: Allure + HTML + line; `test-results/` uploads as a CI artifact on failure.
 
 ---
@@ -597,6 +687,15 @@ Reporters: Allure + HTML + line; `test-results/` uploads as a CI artifact on fai
 
 - Booking.com is a live production site: markup, A/B variants and bot protection change without
   notice; UI results are **evidence of behaviour on the run date**, not a vendor SLA.
+- **Geo-restriction (risk R13, observed 2026-10-18):** from the assessment workstation's network
+  Booking.com returns only _"We are sorry to inform you that, at this moment, access from your
+  location is not possible."_ — verified with both the automated browser and a normal manual
+  browser, so it is a network-level block, not an automation fingerprint issue. The Task 1
+  scenarios are requirement-complete but can only be _evidenced_ from an allowed region; set
+  `PROXY_SERVER` (or a VPN) and the same suite runs unchanged — **verified live 2026-10-18:**
+  the full UI suite runs green through a loopback egress proxy whose address lives only in the
+  gitignored `.env`, with no node credentials stored in the repo. Screenshot + error-context of
+  the original block are kept in `test-results/` as proof.
 - AutomationExercise is a public demo: product counts (34 / 6) and prices drift; assertions are
   deliberately structural (counts `> 0`, brand/category membership, contract shape).
 - Only Chromium binaries are installed locally in this workspace — firefox/webkit UI runs happen
@@ -607,5 +706,5 @@ Reporters: Allure + HTML + line; `test-results/` uploads as a CI artifact on fai
 - Performance thresholds are **observational** budgets derived from live trials on a public host —
   they are not contractual service levels, and 3 repeats are recommended before quoting a median.
 - Payment, login and account flows are out of scope by task definition.
-- Documentation describes the framework as of 2026-10-17; re-verify live counts after any
+- Documentation describes the framework as of 2026-10-18; re-verify live counts after any
   upstream change.

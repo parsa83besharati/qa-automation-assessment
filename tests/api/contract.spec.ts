@@ -69,6 +69,38 @@ test.describe('API contract & latency — AutomationExercise', { tag: ['@api', '
     expect((body.products as unknown[]).length).toBeGreaterThan(0);
   });
 
+  test(
+    'TC-API-CONTRACT-NEG-001 — Malformed search payload fails as an envelope, not a crash',
+    { tag: ['@negative'] },
+    async ({ request }) => {
+      await allure.feature('API contract negative');
+      await allure.story('Garbage body never leaks a stack trace');
+      await allure.severity('normal');
+      await allure.description(
+        'POSTs a JSON body (wrong content type for a form endpoint) to /api/searchProduct and asserts the answer is still JSON with a numeric responseCode — never HTML, a stack trace, or a 5xx.',
+      );
+
+      const response = await request.post('/api/searchProduct', {
+        data: { search_product: { nested: '💥' } },
+      });
+      expect(response.status(), 'Server must not 5xx on malformed input').toBeLessThan(500);
+
+      const text = await response.text();
+      expect(text, 'Response must not be an HTML error page').not.toMatch(
+        /stack trace|exception in|<html/i,
+      );
+
+      let parsed: Envelope | null = null;
+      try {
+        parsed = JSON.parse(text) as Envelope;
+      } catch {
+        parsed = null;
+      }
+      expect(parsed, `Response must be JSON, got: ${text.slice(0, 60)}`).not.toBeNull();
+      expect(typeof (parsed as Envelope).responseCode).toBe('number');
+    },
+  );
+
   test('TC-API-SLO-001 — endpoints stay inside the latency budget', async ({
     apiClient,
   }, testInfo) => {

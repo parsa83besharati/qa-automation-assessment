@@ -98,6 +98,29 @@ test.describe('API — AutomationExercise products', { tag: ['@api'] }, () => {
   );
 
   test(
+    'TC-API-EDGE-001 — Exact product-name search returns only matching products',
+    { tag: ['@edge'] },
+    async ({ apiClient }) => {
+      await allure.feature('API edge');
+      await allure.story('Full-name search is the longest meaningful boundary');
+      await allure.severity('minor');
+      await allure.description(
+        'Takes a real product name from productsList and searches with it verbatim; every returned product must contain that name.',
+      );
+
+      const all = await apiClient.getAllProducts();
+      expect(all.length).toBeGreaterThan(0);
+      const exactName = all[0].name;
+
+      const matched = await apiClient.searchProducts(exactName);
+      expect(matched.length).toBeGreaterThan(0);
+      for (const product of matched) {
+        expect(product.name.toLowerCase()).toContain(exactName.toLowerCase());
+      }
+    },
+  );
+
+  test(
     'TC-API-SEC-001 — XSS/SQLi probes do not break search',
     { tag: ['@security'] },
     async ({ apiClient }) => {

@@ -7,5 +7,4 @@ export const CommonLocators = {
   cookieBanner: '#onetrust-banner-sdk',
   popupCloseIcon: '[data-testid="close-icon"]',
   dismissSignIn: 'button[aria-label="Dismiss sign-in info."]',
-  genericDialog: '[role="dialog"]',
 } as const;

@@ -7,7 +7,7 @@
 **Target:** Booking.com search widget and results (Task 1)  
 **Purpose:** Exercise **boundaries and resilience** — the values and conditions at the edges of allowed input where defects cluster.  
 **Author:** Parsa Besharati  
-**Date:** 2026-10-17  
+**Date:** 2026-10-18  
 **Version:** 2.0
 
 ---
@@ -31,13 +31,15 @@ rather than in the middle of a range, so this suite concentrates there.
 
 ## Edge Case Test Cases
 
-| ID          | Test Case Description                          | Technique                   | Priority | Key Precondition |
-| ----------- | ---------------------------------------------- | --------------------------- | -------- | ---------------- |
-| TC-EDGE-001 | Maximum adults (30) stays submittable          | Boundary Value Analysis     | P2       | Homepage loaded  |
-| TC-EDGE-002 | Second hotel can be opened (index is dynamic)  | Boundary Value Analysis     | P2       | Full search flow |
-| TC-EDGE-003 | Transient popup does not break the flow        | Error Guessing / Resilience | P3       | Homepage loaded  |
-| TC-EDGE-004 | Tablet viewport (1024×768) keeps search usable | State Transition (viewport) | P3       | Viewport fixture |
-| TC-EDGE-005 | Mobile viewport (390×844) keeps search usable  | State Transition (viewport) | P3       | Viewport fixture |
+| ID          | Test Case Description                           | Technique                     | Priority | Key Precondition |
+| ----------- | ----------------------------------------------- | ----------------------------- | -------- | ---------------- |
+| TC-EDGE-001 | Maximum adults (30) stays submittable           | Boundary Value Analysis       | P2       | Homepage loaded  |
+| TC-EDGE-002 | Second hotel can be opened (index is dynamic)   | Boundary Value Analysis       | P2       | Full search flow |
+| TC-EDGE-003 | Transient popup does not break the flow         | Error Guessing / Resilience   | P3       | Homepage loaded  |
+| TC-EDGE-004 | Tablet viewport (1024×768) keeps search usable  | State Transition (viewport)   | P3       | Viewport fixture |
+| TC-EDGE-005 | Mobile viewport (390×844) keeps search usable   | State Transition (viewport)   | P3       | Viewport fixture |
+| TC-EDGE-006 | Single adult with pets off is a valid occupancy | Boundary Value Analysis       | P3       | Homepage loaded  |
+| TC-EDGE-007 | Browser back from results restores the widget   | State Transition (navigation) | P3       | Full search flow |
 
 ---
 
@@ -170,7 +172,7 @@ rather than in the middle of a range, so this suite concentrates there.
 
 1. `await setViewport('mobile')` → 390×844.
 2. `homePage.open()`.
-3. Assert `button[type="submit"]` visible.
+3. Assert the search submit button (`HomeLocators.searchButton`) is visible.
 
 **Expected Results:**
 
@@ -184,9 +186,60 @@ rather than in the middle of a range, so this suite concentrates there.
 
 ---
 
+### TC-EDGE-006 — Single Adult With Pets Off Is a Valid Occupancy
+
+**Scenario Reference:** S4.6  
+**Priority:** P3 · **Severity:** minor  
+**Technique:** Boundary Value Analysis (lower bound)  
+**Precondition:** Homepage loaded
+
+**Test Steps:**
+
+1. Take `BookingTemplates.smoke()` (1 adult, no pets).
+2. `homePage.open()` → `setAdults(1)`.
+3. Assert `occupancy.adultsValue()` reports 1.
+4. `setTravellingWithPets(false)` → assert the pets checkbox is **off**.
+5. Assert Search stays enabled; close the panel with `occupancy.done()`.
+
+**Expected Results:**
+
+- The lower occupancy boundary behaves exactly like the upper one (TC-EDGE-001) — the panel
+  accepts it, reports it back, and never blocks submission.
+
+**Automation Notes:**
+
+- The opposite boundary of TC-EDGE-001 — together they pin both ends of Booking's 1–30 range.
+
+---
+
+### TC-EDGE-007 — Browser Back From Results Restores the Search Widget
+
+**Scenario Reference:** S4.7  
+**Priority:** P3 · **Severity:** minor  
+**Technique:** State Transition Testing (navigation)  
+**Precondition:** Homepage loaded
+
+**Test Steps:**
+
+1. Run the full `searchFlow(BookingTemplates.taskHappyPath())`.
+2. `resultsPage.waitForResults()`.
+3. `page.goBack()`.
+4. Assert the destination input is visible again.
+
+**Expected Results:**
+
+- Back-navigation returns to a usable homepage (bfcache or re-render) — the flow is
+  recoverable and the widget is not stuck in a post-results state.
+
+**Automation Notes:**
+
+- Guards against results-page state leaking into the homepage via the back-forward cache.
+
+---
+
 ## Execution Order & Dependencies
 
-1. All five cases are independent (fresh context, own `open()`).
+1. All seven cases are independent (fresh context, own `open()`).
 2. `TC-EDGE-002` is the only one performing a full search flow — run it last locally.
 3. Excluded from `npm run test:fast` by tag (`--grep-invert "@regression|@edge"`); included in the
    full `npm test` and the cross-browser CI runs.

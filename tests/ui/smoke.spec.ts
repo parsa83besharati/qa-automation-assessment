@@ -1,5 +1,6 @@
 import { test, expect } from '../../fixtures/fixtures';
 import { HomeLocators } from '../../pages/locators/home.locators';
+import { CurrencyLocators } from '../../pages/locators/currency.locators';
 import { BookingTemplates } from '../../data/templates/booking.templates';
 import { allure } from 'allure-playwright';
 
@@ -25,7 +26,7 @@ test.describe('Smoke — Booking critical path', { tag: ['@smoke', '@ui'] }, () 
     await test.step('Search widget is visible', async () => {
       await expect(homePage.rawPage.locator(HomeLocators.destinationInput).first()).toBeVisible();
       await expect(homePage.rawPage.locator(HomeLocators.searchButton).first()).toBeVisible();
-      await expect(homePage.rawPage.locator(HomeLocators.currencyButton).first()).toBeVisible();
+      await expect(homePage.rawPage.locator(CurrencyLocators.trigger).first()).toBeVisible();
     });
   });
 

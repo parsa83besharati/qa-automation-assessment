@@ -1,5 +1,7 @@
 import { test, expect } from '../../fixtures/fixtures';
 import { HomeLocators } from '../../pages/locators/home.locators';
+import { CurrencyLocators } from '../../pages/locators/currency.locators';
+import { DateLocators } from '../../pages/locators/date.locators';
 import { ResultsLocators } from '../../pages/locators/results.locators';
 import { BookingTemplates } from '../../data/templates/booking.templates';
 import { env } from '../../config/env';
@@ -26,7 +28,7 @@ test.describe(
       const query = BookingTemplates.taskHappyPath();
       await homePage.open();
       await homePage.selectCurrency(query.currency);
-      await expect(homePage.rawPage.locator(HomeLocators.currencyButton).first()).toContainText(
+      await expect(homePage.rawPage.locator(CurrencyLocators.trigger).first()).toContainText(
         query.currency,
       );
     });
@@ -40,8 +42,10 @@ test.describe(
 
       const query = BookingTemplates.taskHappyPath();
       await homePage.open();
-      await homePage.fillDestination(query.destination);
+      await homePage.typeDestination(query.destination);
+      // Assert while the autocomplete is open — picking a suggestion closes it.
       await expect(homePage.rawPage.locator(HomeLocators.suggestionList).first()).toBeVisible();
+      await homePage.pickFirstSuggestion();
     });
 
     test('TC-REG-003 — Flexible current-month dates can be selected', async ({ homePage }) => {
@@ -55,7 +59,10 @@ test.describe(
 
       await homePage.open();
       await homePage.selectFlexibleDatesCurrentMonth(env.currentMonth.label);
-      await expect(homePage.rawPage.locator(HomeLocators.occupancyTrigger).first()).toBeVisible();
+      // Outcome, not just "no crash": the calendar must close and the trigger
+      // must stop showing its default "Check-in date — Check-out date" state.
+      await expect(homePage.rawPage.locator(DateLocators.panel)).toBeHidden();
+      expect(await homePage.dates.containerText()).not.toContain('Check-in date');
     });
 
     test('TC-REG-004 — Occupancy supports 8 adults plus pets', async ({ homePage }) => {
@@ -68,8 +75,11 @@ test.describe(
       const query = BookingTemplates.taskHappyPath();
       await homePage.open();
       await homePage.setAdults(query.adults);
+      expect(await homePage.occupancy.adultsValue()).toBe(query.adults);
       await homePage.setTravellingWithPets(query.travellingWithPets);
+      expect(await homePage.occupancy.petsEnabled()).toBe(true);
       await expect(homePage.rawPage.locator(HomeLocators.searchButton).first()).toBeEnabled();
+      await homePage.occupancy.done();
     });
 
     test('TC-REG-005 — Results render hotel cards with availability', async ({

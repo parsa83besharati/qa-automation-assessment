@@ -7,7 +7,7 @@ k6 performance (Task 3).
 | Document                                                             | Purpose                                                                       |
 | -------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
 | [Test-Design-Document.md](./Test-Design-Document.md)                 | Scope, risk register, design techniques, scenarios S1–S7, traceability matrix |
-| [Comprehensive-Test-Checklist.md](./Comprehensive-Test-Checklist.md) | Master checklist — 27 Playwright cases + 5 k6 scenarios                       |
+| [Comprehensive-Test-Checklist.md](./Comprehensive-Test-Checklist.md) | Master checklist — 33 Playwright cases + 5 k6 scenarios                       |
 | [Smoke-Test-Suite.md](./Smoke-Test-Suite.md)                         | Smoke design, test steps, expected results, automation notes                  |
 | [Regression-Test-Suite.md](./Regression-Test-Suite.md)               | Regression design & step-by-step instructions                                 |
 | [Negative-Test-Suite.md](./Negative-Test-Suite.md)                   | Negative design & steps (UI + API)                                            |
@@ -20,17 +20,17 @@ k6 performance (Task 3).
 
 ## Automation mapping
 
-| Suite                  | Spec file                     |       Cases | Tags                           | Command                   |
-| ---------------------- | ----------------------------- | ----------: | ------------------------------ | ------------------------- |
-| Smoke                  | `tests/ui/smoke.spec.ts`      |           2 | `@smoke` `@ui`                 | `npm run test:smoke`      |
-| Regression             | `tests/ui/regression.spec.ts` |           5 | `@regression` `@ui`            | `npm run test:regression` |
-| Negative (UI)          | `tests/ui/negative.spec.ts`   |           3 | `@negative` `@ui`              | `npm run test:negative`   |
-| Edge                   | `tests/ui/edge.spec.ts`       |           5 | `@edge` `@ui`                  | `npm run test:edge`       |
-| Security (UI)          | `tests/ui/security.spec.ts`   |           4 | `@security` `@ui`              | `npm run test:security`   |
-| API                    | `tests/api/products.spec.ts`  |           5 | `@api` `@negative` `@security` | `npm run test:api`        |
-| API contract & SLO     | `tests/api/contract.spec.ts`  |           3 | `@api` `@contract`             | `npm run test:api`        |
-| **Total (Playwright)** |                               |      **27** |                                |                           |
-| Performance            | `performance/k6/*.js`         | 5 scenarios | —                              | `npm run perf:<name>`     |
+| Suite                  | Spec file                     |       Cases | Tags                                   | Command                   |
+| ---------------------- | ----------------------------- | ----------: | -------------------------------------- | ------------------------- |
+| Smoke                  | `tests/ui/smoke.spec.ts`      |           2 | `@smoke` `@ui`                         | `npm run test:smoke`      |
+| Regression             | `tests/ui/regression.spec.ts` |           5 | `@regression` `@ui`                    | `npm run test:regression` |
+| Negative (UI)          | `tests/ui/negative.spec.ts`   |           5 | `@negative` `@ui`                      | `npm run test:negative`   |
+| Edge                   | `tests/ui/edge.spec.ts`       |           7 | `@edge` `@ui`                          | `npm run test:edge`       |
+| Security (UI)          | `tests/ui/security.spec.ts`   |           4 | `@security` `@ui`                      | `npm run test:security`   |
+| API                    | `tests/api/products.spec.ts`  |           6 | `@api` `@negative` `@security` `@edge` | `npm run test:api`        |
+| API contract & SLO     | `tests/api/contract.spec.ts`  |           4 | `@api` `@contract` `@negative`         | `npm run test:api`        |
+| **Total (Playwright)** |                               |      **33** |                                        |                           |
+| Performance            | `performance/k6/*.js`         | 5 scenarios | —                                      | `npm run perf:<name>`     |
 
 **Playwright projects:** `chromium` / `firefox` / `webkit` execute `tests/ui/**` only — the
 browser projects `testIgnore` `api/**`. API cases run **once** in the dedicated `api` project
@@ -67,6 +67,6 @@ browser-agnostic. See [README](../README.md#projects--browser-matrix).
 | Field            | Value                               |
 | ---------------- | ----------------------------------- |
 | Project          | QA Automation Assessment — Mohaymen |
-| Document version | 2.0                                 |
-| Last updated     | 2026-10-17                          |
+| Document version | 2.1                                 |
+| Last updated     | 2026-10-18                          |
 | Author           | Parsa Besharati                     |

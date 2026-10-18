@@ -8,7 +8,7 @@
 **Targets:** Booking.com search widget · AutomationExercise `searchProduct`  
 **Purpose:** Prove the system **rejects invalid input gracefully** — no navigation on empty input, no crash on nonsense, no 500 on abuse.  
 **Author:** Parsa Besharati  
-**Date:** 2026-10-17  
+**Date:** 2026-10-18  
 **Version:** 2.0
 
 ---
@@ -35,6 +35,8 @@ ask _"does it do the right thing?"_, these ask _"does it refuse the wrong thing 
 | TC-NEG-001     | Empty destination blocks search or shows validation  | Negative Testing          | P1       | Homepage loaded  |
 | TC-NEG-002     | Gibberish destination yields no results or stays put | Negative + EP (invalid)   | P2       | Homepage loaded  |
 | TC-NEG-003     | Invalid currency code is rejected gracefully         | Negative Testing          | P2       | Homepage loaded  |
+| TC-NEG-004     | Adults can never drop below the minimum of 1         | Negative + BVA (lower)    | P3       | Homepage loaded  |
+| TC-NEG-005     | Overlong + emoji destination does not break the app  | Negative + robustness     | P3       | Homepage loaded  |
 | TC-API-NEG-001 | Search without parameter is rejected (400)           | Negative + Decision Table | P1       | API reachable    |
 | TC-API-NEG-002 | GET on search endpoint is not allowed (405)          | Negative + Decision Table | P1       | API reachable    |
 
@@ -120,6 +122,60 @@ ask _"does it do the right thing?"_, these ask _"does it refuse the wrong thing 
 
 - `XXX` is not a real ISO code, so a correct widget refuses it; a buggy one might navigate or throw.
 - Tolerating the rejection keeps the assertion about _state_, not about _how_ it refuses.
+
+---
+
+### TC-NEG-004 — Adults Can Never Drop Below the Minimum of 1
+
+**Scenario Reference:** S3.4  
+**Priority:** P3 · **Severity:** minor  
+**Technique:** Boundary Value Analysis (lower bound) + Negative Testing  
+**Precondition:** Homepage loaded
+
+**Test Steps:**
+
+1. Take `BookingTemplates.negative()[1]` (a query demanding `adults: 0`) and assert the data really demands 0.
+2. `homePage.open()` → open the occupancy panel.
+3. Read the adults slider's `min` attribute.
+4. Read the current adults value.
+
+**Expected Results:**
+
+- The slider declares `min="1"` — 0 adults is unwinnable by design, so the suite asserts the
+  bound instead of pretending to set it.
+- Current value ≥ 1 at all times.
+
+**Automation Notes:**
+
+- Booking replaced the old +/- stepper with `input#group_adults` (`type="range"`,
+  `min=1 max=30`) — the assertion targets the slider, not the decorative `aria-hidden` buttons.
+
+---
+
+### TC-NEG-005 — Overlong + Emoji Destination Does Not Break the App
+
+**Scenario Reference:** S3.5  
+**Priority:** P3 · **Severity:** minor  
+**Technique:** Negative Testing (robustness / fuzz-lite)  
+**Precondition:** Homepage loaded
+
+**Test Steps:**
+
+1. `homePage.open()`.
+2. `typeDestination(SearchFactory.longDestination())` — default destination + 250 `x` + 🌍.
+3. `submitSearch({ expectNavigation: false })` — navigation is legitimately optional here.
+4. Settle, then inspect URL and widget.
+
+**Expected Results:**
+
+- Still on `booking.com` — no error page, no crash, no logout to a different origin.
+- The destination input is still visible/usable afterwards.
+
+**Automation Notes:**
+
+- The payload lives in `SearchFactory.longDestination()` (data layer), not inline in the spec.
+- A `waitForTimeout` is deliberate here: it gives any asynchronous error handler a chance to
+  misbehave before the assertions run.
 
 ---
 
