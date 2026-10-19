@@ -15,7 +15,20 @@ export class DatePicker extends BasePage {
   }
 
   public async openCalendar(): Promise<void> {
-    await this.click(DateLocators.calendarTrigger, 'Open calendar');
+    // The first click can be swallowed while the destination autocomplete is still
+    // collapsing, so retry the trigger until the panel actually renders.
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      await this.click(DateLocators.calendarTrigger, 'Open calendar');
+      if (
+        await this.waitForVisible(DateLocators.tabs, 5_000).then(
+          () => true,
+          () => false,
+        )
+      ) {
+        return;
+      }
+      logger.warn(`Calendar did not open (attempt ${attempt}/3) — retrying`);
+    }
     await this.waitForVisible(DateLocators.tabs, 10_000);
   }
 

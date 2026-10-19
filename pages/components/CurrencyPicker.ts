@@ -29,11 +29,26 @@ export class CurrencyPicker extends BasePage {
     await this.waitForHidden(CurrencyLocators.panel, 10_000).catch(() => undefined);
     // Measured 2026-10-18: picking a currency kicks off a widget re-render
     // window of ~3 s during which anything typed into the destination field is
-    // silently reset back to "". Let it finish before the caller types —
-    // otherwise the happy path submits with an empty destination and Booking
-    // answers "Enter a destination to start searching."
-    await this.rawPage.waitForTimeout(3_000);
+    // silently reset back to "". Wait until the header trigger reflects the new
+    // code (condition-based, not a fixed sleep) so the subsequent destination
+    // typing lands on a settled widget.
+    await this.waitUntilCurrency(code, 10_000);
     logger.success(`Currency ✔ ${code}`);
+  }
+
+  /** Poll until the header currency trigger shows `code`, with a hard cap. */
+  private async waitUntilCurrency(code: string, timeoutMs: number): Promise<void> {
+    const started = Date.now();
+    for (;;) {
+      const current = await this.currentCode().catch(() => '');
+      if (current.toUpperCase() === code.toUpperCase()) {
+        return;
+      }
+      if (Date.now() - started >= timeoutMs) {
+        return; // best effort — the caller types next and ensureDestination() covers resets
+      }
+      await this.rawPage.waitForTimeout(200);
+    }
   }
 
   /** Currency code currently shown on the header trigger (e.g. "EUR"). */

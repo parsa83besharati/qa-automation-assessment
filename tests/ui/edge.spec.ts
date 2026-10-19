@@ -39,7 +39,7 @@ test.describe('Edge — Booking boundaries and resilience', { tag: ['@edge', '@u
     await homePage.searchFlow({ ...query, targetHotelIndex: 2 });
     await resultsPage.waitForResults();
     const hotelPage = await resultsPage.openHotelByIndex(2);
-    await expect(hotelPage).toHaveURL(/booking\.com/);
+    await expect(hotelPage).toHaveURL(/booking\.com\/hotel\//);
   });
 
   test('TC-EDGE-003 — Transient popup does not break the flow', async ({ homePage }) => {
